@@ -1,73 +1,38 @@
-# React + TypeScript + Vite
+# Synonyms
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A bilingual synonym flashcard trainer for English and Italian, built with React + TypeScript + Vite.
 
-Currently, two official plugins are available:
+## How it works
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Play** — a random word is presented and you select all its synonyms from 6 options. Words and options can come from either language (configurable in settings). Feedback is colour-coded: correct picks turn green, missed synonyms turn yellow, wrong picks turn red.
 
-## React Compiler
+**Explore** — browse all 69k synsets with live search and part-of-speech filters (Noun, Verb, Adjective, Adverb). Each synset shows its English and Italian lemmas side by side with match highlighting.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Data comes from [WordNet](https://wordnet.princeton.edu/) (Princeton) and the [Open Multilingual Wordnet](https://omwn.org/), preprocessed into a static JSON file that ships with the app — no backend required.
 
-## Expanding the ESLint configuration
+## Development
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Type check:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+npx tsc --noEmit
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Rebuilding the word data
+
+The synset data is pre-built and committed at `public/synsets.json`. To rebuild it (e.g. after adding a language):
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install nltk
+.venv/bin/python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4')"
+# Unzip the downloaded corpora (required — NLTK doesn't auto-unzip)
+cd ~/nltk_data/corpora && unzip -o wordnet.zip && unzip -o omw-1.4.zip
+cd /path/to/project
+.venv/bin/python scripts/build_synsets.py
 ```

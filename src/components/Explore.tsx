@@ -16,7 +16,11 @@ const POS_FILTERS: { key: PosFilter; label: string }[] = [
   { key: "r",   label: "Adverb" },
 ];
 
-export function Explore() {
+interface Props {
+  onNavigate: (id: string) => void;
+}
+
+export function Explore({ onNavigate }: Props) {
   const [synsets, setSynsets] = useState<Synset[] | null>(null);
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState<PosFilter>("all");
@@ -34,7 +38,7 @@ export function Explore() {
         const posMatch = posFilter === "a" ? ss.pos === "a" || ss.pos === "s" : ss.pos === posFilter;
         if (!posMatch) return false;
       }
-      if (q) return ss.en?.some((w) => w.toLowerCase().includes(q)) || ss.it?.some((w) => w.toLowerCase().includes(q));
+      if (q) return ss.en?.some((l) => l.name.toLowerCase().includes(q)) || ss.it?.some((l) => l.name.toLowerCase().includes(q));
       return true;
     });
   }, [synsets, deferredSearch, posFilter]);
@@ -85,7 +89,7 @@ export function Explore() {
       <div className="explore__list">
         {synsets === null && <p className="status">Loading…</p>}
         {synsets !== null && filtered.length === 0 && <p className="status">No results.</p>}
-        {visible.map((ss) => <SynsetRow key={ss.id} ss={ss} query={q} />)}
+        {visible.map((ss) => <SynsetRow key={ss.id} ss={ss} query={q} onClick={() => onNavigate(ss.id)} />)}
         <div ref={sentinelRef} />
       </div>
     </div>
@@ -106,17 +110,17 @@ function highlight(word: string, query: string) {
   );
 }
 
-const SynsetRow = memo(function SynsetRow({ ss, query }: { ss: Synset; query: string }) {
+const SynsetRow = memo(function SynsetRow({ ss, query, onClick }: { ss: Synset; query: string; onClick: () => void }) {
   return (
-    <div className="synset">
+    <div className="synset synset--clickable" onClick={onClick}>
       <span className={`synset__pos synset__pos--${ss.pos}`}>{POS_SHORT[ss.pos]}</span>
       <div className="synset__body">
         {ss.en && ss.en.length > 0 && (
           <div className="synset__row">
             <span className="synset__lang">EN</span>
             <span className="synset__words">
-              {ss.en.map((w, i) => (
-                <span key={w}>{highlight(w, query)}{i < ss.en!.length - 1 ? ", " : ""}</span>
+              {ss.en.map((l, i) => (
+                <span key={l.name}>{highlight(l.name, query)}{i < ss.en!.length - 1 ? ", " : ""}</span>
               ))}
             </span>
           </div>
@@ -125,8 +129,8 @@ const SynsetRow = memo(function SynsetRow({ ss, query }: { ss: Synset; query: st
           <div className="synset__row">
             <span className="synset__lang synset__lang--it">IT</span>
             <span className="synset__words synset__words--it">
-              {ss.it.map((w, i) => (
-                <span key={w}>{highlight(w, query)}{i < ss.it!.length - 1 ? ", " : ""}</span>
+              {ss.it.map((l, i) => (
+                <span key={l.name}>{highlight(l.name, query)}{i < ss.it!.length - 1 ? ", " : ""}</span>
               ))}
             </span>
           </div>

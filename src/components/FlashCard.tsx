@@ -8,9 +8,10 @@ interface Props {
   onToggle: (word: string) => void;
   onSubmit: () => void;
   onNext: () => void;
+  onViewSynset: (id: string) => void;
 }
 
-export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNext }: Props) {
+export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNext, onViewSynset }: Props) {
   const correctCount = card.options.filter((o) => o.correct).length;
   const selectedCorrect = card.options.filter((o) => o.correct && selected.has(o.word)).length;
   const selectedWrong = card.options.filter((o) => !o.correct && selected.has(o.word)).length;
@@ -18,7 +19,17 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
   return (
     <div className="card">
       <p className="card__hint">Select all synonyms</p>
-      <h1 className="card__prompt">{card.prompt.replace(/_/g, " ")}</h1>
+      <div className="card__prompt-row">
+        <h1 className="card__prompt">{card.prompt.replace(/_/g, " ")}</h1>
+        <button
+          className="card__info"
+          onClick={() => onViewSynset(card.synsetId)}
+          aria-label="View synset details"
+          title="View details"
+        >
+          ⓘ
+        </button>
+      </div>
 
       <div className="card__options">
         {card.options.map((opt) => (

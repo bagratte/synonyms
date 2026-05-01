@@ -430,3 +430,251 @@ mark {
   border-radius: 2px;
   padding: 0 1px;
 }
+
+/* Clickable synset rows in Explore */
+.synset--clickable {
+  cursor: pointer;
+  transition: background 0.1s;
+  border-radius: 6px;
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.synset--clickable:hover { background: var(--surface); }
+
+/* FlashCard info button */
+.card__prompt-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.card__info {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-muted);
+  padding: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 8px;
+  border-radius: 4px;
+  transition: color 0.12s;
+}
+.card__info:hover { color: var(--accent); }
+
+/* Detail page */
+.detail {
+  flex: 1;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 16px 60px;
+}
+
+.detail__back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 6px 0;
+  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.12s;
+}
+.detail__back:hover { color: var(--accent); }
+
+.detail__card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detail__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detail__id {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.detail__lexname {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.detail__lemmas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail__words {
+  font-size: 17px !important;
+  font-weight: 500;
+}
+
+.detail__freq {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 1px;
+}
+
+.detail__def {
+  font-size: 15px;
+  color: var(--text);
+  margin: 0;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.detail__examples {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail__example {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.detail__example::before { content: '"'; }
+.detail__example::after  { content: '"'; }
+
+/* Relations */
+.detail__relations {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.detail__section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.detail__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.synset-chip {
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.synset-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Lemma details */
+.detail__lemma-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.detail__lemma {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail__lemma-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.detail__lemma-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.detail__lemma-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.detail__lemma-attr {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detail__lemma-attr-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  padding-top: 4px;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.detail__lemma-attr-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.lemma-ref {
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.lemma-ref:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.detail__frame {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}

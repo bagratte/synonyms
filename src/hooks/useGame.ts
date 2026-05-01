@@ -21,10 +21,10 @@ function shuffle<T>(arr: T[]): T[] {
 function getLemmas(ss: Synset, filter: LangFilter): { word: string; lang: Lang }[] {
   const result: { word: string; lang: Lang }[] = [];
   if (filter !== "it") {
-    for (const w of ss.en ?? []) result.push({ word: w, lang: "en" });
+    for (const l of ss.en ?? []) result.push({ word: l.name, lang: "en" });
   }
   if (filter !== "en") {
-    for (const w of ss.it ?? []) result.push({ word: w, lang: "it" });
+    for (const l of ss.it ?? []) result.push({ word: l.name, lang: "it" });
   }
   return result;
 }
@@ -74,7 +74,7 @@ function buildCard(
     ...distractors,
   ]);
 
-  return { prompt: promptEntry.word, promptLang: promptEntry.lang, options };
+  return { prompt: promptEntry.word, promptLang: promptEntry.lang, synsetId: ss.id, options };
 }
 
 export function useGame(filter: LangFilter) {

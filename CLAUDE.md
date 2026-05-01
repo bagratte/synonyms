@@ -45,10 +45,13 @@ The JSON schema is a flat array of synsets:
 
 **Component tree:**
 ```
-App
-├── FlashCard       — prompt word + 6 OptionButtons + submit/next
+App  (view: "play" | "explore")
+├── FlashCard       — prompt word + 6 OptionButtons + submit/next  [play]
 │   └── OptionButton — idle / selected / correct / missed / wrong states
-└── Settings        — modal overlay with LangFilter radio group
+├── Settings        — modal overlay with LangFilter radio group     [play]
+└── Explore         — search + POS filters + infinite-scroll synset list  [explore]
 ```
+
+`Explore` loads synsets via the same cached `loadSynsets()` call. Filtering (search + POS) runs in a `useMemo` with `useDeferredValue` on the query for responsiveness. The list renders 50 rows at a time, expanding via `IntersectionObserver` on a sentinel element. WordNet POS `"a"` and `"s"` (satellite adjective) are both displayed as "adj" and merged under the Adjective filter.
 
 All styling is in `src/index.css` (no CSS modules, no Tailwind). Supports `prefers-color-scheme: dark`.

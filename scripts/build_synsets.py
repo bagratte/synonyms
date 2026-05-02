@@ -85,7 +85,7 @@ class RuWordNetAdapter(LangAdapter):
         # Two bulk queries instead of N+1 ORM lazy loads.
         senses_by_synset: dict[str, list[dict]] = {}
         for synset_id, name in session.query(Sense.synset_id, Sense.name).all():
-            senses_by_synset.setdefault(synset_id, []).append({"name": name.lower()})
+            senses_by_synset.setdefault(synset_id, []).append({"name": name})
 
         index: dict[str, list[dict]] = {}
         for ruwn_id, wn_id in session.execute(ili_table.select()).fetchall():

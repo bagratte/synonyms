@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadSynsets } from "../data/loader";
 import type { Card, Lang, LangFilter, Option, Synset } from "../data/types";
+import { LANGS } from "../data/types";
 
 const OPTIONS_COUNT = 6;
 const MAX_CORRECT = 5; // at most 5 correct, so there's always ≥1 distractor slot
@@ -20,11 +21,9 @@ function shuffle<T>(arr: T[]): T[] {
 
 function getLemmas(ss: Synset, filter: LangFilter): { word: string; lang: Lang }[] {
   const result: { word: string; lang: Lang }[] = [];
-  if (filter !== "it") {
-    for (const l of ss.en ?? []) result.push({ word: l.name, lang: "en" });
-  }
-  if (filter !== "en") {
-    for (const l of ss.it ?? []) result.push({ word: l.name, lang: "it" });
+  for (const lang of LANGS) {
+    if (!filter[lang]) continue;
+    for (const l of ss[lang] ?? []) result.push({ word: l.name, lang });
   }
   return result;
 }

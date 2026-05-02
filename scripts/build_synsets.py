@@ -3,82 +3,158 @@ Build synsets.json for the synonym trainer.
 
 Output: public/synsets.json
 Schema:
-  [
-    {
-      "id": "happy.a.01",
-      "pos": "a",
-      "lexname": "adj.all",
-      "def": "experiencing or showing happiness",
-      "examples": ["a happy smile"],     # omitted if empty
-      "def": {"en": "experiencing or showing happiness", "it": "..."},  # lang keys omitted if no data
-      "examples": {"en": ["a happy smile"]},                           # omitted entirely if empty
-      "en": [{"name": "happy", "count": 12, "antonyms": [{"synset": "unhappy.a.01", "lemma": "unhappy"}]}],
-      "it": [{"name": "felice"}],        # omitted if no coverage
-    },
-    ...
-  ]
+  [{
+    "id": "happy.a.01",
+    "pos": "a",
+    "lexname": "adj.all",
+    "def": {"en": "experiencing or showing happiness", "it": "..."},
+    "examples": {"en": ["a happy smile"]},
+    "en": [{"name": "happy", "count": 12, "antonyms": [{"synset": "unhappy.a.01", "lemma": "unhappy"}]}],
+    "it": [{"name": "felice"}],
+    "ru": [{"name": "счастливый"}],
+  }, ...]
 
-Only synsets with at least one lemma in a selected language are included.
+Only synsets with at least one lemma from any adapter are included.
+Definitions and examples are sourced from NLTK/OMW for languages that have them there.
+
+To add a language: implement LangAdapter, add it to ADAPTERS.
+To swap a source: replace the adapter instance in ADAPTERS.
 """
 
 import json
 import sys
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 from nltk.corpus import wordnet as wn
-
-LANGUAGES = ["eng", "ita"]
-LANG_KEYS = {"eng": "en", "ita": "it"}
-def lemma_ref(lemma) -> dict:
-    return {"synset": lemma.synset().name(), "lemma": lemma.name()}
+from tqdm import tqdm
 
 
-def build_lemma(lemma) -> dict:
-    d = {"name": lemma.name()}
-
-    count = lemma.count()
-    if count:
-        d["count"] = count
-
-    antonyms = [lemma_ref(a) for a in lemma.antonyms()]
-    if antonyms:
-        d["antonyms"] = antonyms
-
-    return d
+class LangAdapter(ABC):
+    @abstractmethod
+    def lemmas_for(self, synset_name: str, offset: int, pos: str) -> list[dict]:
+        """Return lemma dicts for the given PWN synset. Each dict has at least 'name'."""
+        ...
 
 
-def build():
+class NLTKOMWAdapter(LangAdapter):
+    """Fetches lemmas from NLTK's Open Multilingual Wordnet (OMW 1.4)."""
+
+    def __init__(self, lang: str):
+        self.lang = lang
+
+    def lemmas_for(self, synset_name: str, offset: int, pos: str) -> list[dict]:
+        result = []
+        for lemma in wn.synset(synset_name).lemmas(self.lang):
+            d: dict = {"name": lemma.name()}
+            if count := lemma.count():
+                d["count"] = count
+            if antonyms := [{"synset": a.synset().name(), "lemma": a.name()} for a in lemma.antonyms()]:
+                d["antonyms"] = antonyms
+            result.append(d)
+        return result
+
+
+class RuWordNetAdapter(LangAdapter):
+    """Fetches Russian lemmas from RuWordNet via ILI alignment to PWN synsets.
+
+    Requires the ruwordnet package and its database:
+      pip install ruwordnet
+      python -m ruwordnet download
+    """
+
+    def __init__(self):
+        self._index: dict[str, list[dict]] | None = None
+
+    def _load(self) -> None:
+        try:
+            from ruwordnet.models import Sense, ili_table
+            from ruwordnet.utils import get_default_session
+        except ImportError:
+            raise RuntimeError("ruwordnet not installed — run: pip install ruwordnet")
+
+        print("  Loading RuWordNet...", end="", flush=True, file=sys.stderr)
+        try:
+            session = get_default_session()
+        except FileNotFoundError:
+            raise RuntimeError(
+                "RuWordNet database not found.\n"
+                "Run: .venv/bin/python -m ruwordnet download"
+            )
+
+        # Two bulk queries instead of N+1 ORM lazy loads.
+        senses_by_synset: dict[str, list[dict]] = {}
+        for synset_id, name in session.query(Sense.synset_id, Sense.name).all():
+            senses_by_synset.setdefault(synset_id, []).append({"name": name.lower()})
+
+        index: dict[str, list[dict]] = {}
+        for ruwn_id, wn_id in session.execute(ili_table.select()).fetchall():
+            lemmas = senses_by_synset.get(ruwn_id)
+            if lemmas:
+                index.setdefault(wn_id, []).extend(lemmas)
+
+        self._index = index
+        print(f" {len(index)} synsets mapped", file=sys.stderr)
+
+    def lemmas_for(self, synset_name: str, offset: int, pos: str) -> list[dict]:
+        if self._index is None:
+            self._load()
+        return self._index.get("{:08d}-{}".format(offset, pos), [])
+
+
+# Edit here to add languages or swap sources.
+ADAPTERS: dict[str, LangAdapter] = {
+    "en": NLTKOMWAdapter("eng"),
+    "it": NLTKOMWAdapter("ita"),
+    "ru": RuWordNetAdapter(),
+}
+
+# Definitions and examples come from NLTK for OMW-covered languages.
+# Automatically derived from ADAPTERS — no manual sync needed.
+_NLTK_DEF_LANGS: dict[str, str] = {
+    adapter.lang: key
+    for key, adapter in ADAPTERS.items()
+    if isinstance(adapter, NLTKOMWAdapter)
+}
+
+
+def build() -> list[dict]:
     synsets = []
 
-    for ss in wn.all_synsets():
-        lemmas_by_lang = {}
-        for lang in LANGUAGES:
-            lemmas = ss.lemmas(lang)
+    for ss in tqdm(wn.all_synsets(), desc="  Processing synsets", unit=" synsets", file=sys.stderr):
+        lemmas_by_lang: dict[str, list[dict]] = {}
+        for lang_key, adapter in ADAPTERS.items():
+            lemmas = adapter.lemmas_for(ss.name(), ss.offset(), ss.pos())
             if lemmas:
-                lemmas_by_lang[LANG_KEYS[lang]] = [build_lemma(l) for l in lemmas]
+                lemmas_by_lang[lang_key] = lemmas
 
         if not lemmas_by_lang:
             continue
 
-        defs = {key: ss.definition(lang=lang) for lang, key in LANG_KEYS.items() if ss.definition(lang=lang)}
-        examples = {key: exs for lang, key in LANG_KEYS.items() if (exs := ss.examples(lang=lang))}
-
+        defs = {
+            key: ss.definition(lang=lang)
+            for lang, key in _NLTK_DEF_LANGS.items()
+            if ss.definition(lang=lang)
+        }
+        examples = {
+            key: exs
+            for lang, key in _NLTK_DEF_LANGS.items()
+            if (exs := ss.examples(lang=lang))
+        }
         hyps = [h.name() for h in ss.hypernyms() + ss.instance_hypernyms() + ss.similar_tos()]
 
-        entry = {
+        entry: dict = {
             "id": ss.name(),
             "pos": ss.pos(),
             "lexname": ss.lexname(),
             "def": defs,
         }
-
         if hyps:
             entry["hypernyms"] = hyps
-
         if examples:
             entry["examples"] = examples
-
         entry.update(lemmas_by_lang)
+
         synsets.append(entry)
 
     return synsets

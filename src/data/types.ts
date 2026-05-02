@@ -1,5 +1,6 @@
 export type Pos = "n" | "v" | "a" | "s" | "r";
-export type Lang = "en" | "it";
+export type Lang = "en" | "it" | "ru";
+export const LANGS: Lang[] = ["en", "it", "ru"];
 
 export interface LemmaRef {
   synset: string;
@@ -20,6 +21,7 @@ export interface Synset {
   examples?: Partial<Record<Lang, string[]>>;
   en?: Lemma[];
   it?: Lemma[];
+  ru?: Lemma[];
   hypernyms?: string[];
 }
 
@@ -38,4 +40,4 @@ export interface Option {
   correct: boolean;
 }
 
-export type LangFilter = "en" | "it" | "both";
+export type LangFilter = Record<Lang, boolean>;

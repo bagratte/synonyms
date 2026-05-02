@@ -167,6 +167,7 @@ body { margin: 0; }
   opacity: 0.6;
 }
 .card__lang--it { color: #e64980; }
+.card__lang--ru { color: #0c8599; }
 
 .card__def {
   color: var(--text-muted);
@@ -460,9 +461,11 @@ body { margin: 0; }
   width: 18px;
 }
 .synset__lang--it { color: #e64980; }
+.synset__lang--ru { color: #0c8599; }
 
 @media (prefers-color-scheme: dark) {
   .synset__lang--it { color: #f783ac; }
+  .synset__lang--ru { color: #22b8cf; }
 }
 
 .synset__words {
@@ -471,6 +474,7 @@ body { margin: 0; }
   word-break: break-word;
 }
 .synset__words--it { color: var(--text-muted); }
+.synset__words--ru { color: var(--text-muted); }
 
 mark {
   background: rgba(79, 70, 229, 0.18);

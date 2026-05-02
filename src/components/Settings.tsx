@@ -1,4 +1,7 @@
-import type { LangFilter } from "../data/types";
+import type { Lang, LangFilter } from "../data/types";
+import { LANGS } from "../data/types";
+
+const LANG_LABELS: Record<Lang, string> = { en: "English", it: "Italian", ru: "Russian" };
 
 interface Props {
   filter: LangFilter;
@@ -7,6 +10,11 @@ interface Props {
 }
 
 export function Settings({ filter, onChange, onClose }: Props) {
+  function toggle(lang: Lang) {
+    const next = { ...filter, [lang]: !filter[lang] };
+    if (LANGS.some((l) => next[l])) onChange(next);
+  }
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings" onClick={(e) => e.stopPropagation()}>
@@ -14,16 +22,14 @@ export function Settings({ filter, onChange, onClose }: Props) {
 
         <fieldset className="settings__group">
           <legend className="settings__label">Languages</legend>
-          {(["both", "en", "it"] as LangFilter[]).map((opt) => (
-            <label key={opt} className="settings__option">
+          {LANGS.map((lang) => (
+            <label key={lang} className="settings__option">
               <input
-                type="radio"
-                name="lang"
-                value={opt}
-                checked={filter === opt}
-                onChange={() => onChange(opt)}
+                type="checkbox"
+                checked={filter[lang]}
+                onChange={() => toggle(lang)}
               />
-              {opt === "both" ? "English + Italian" : opt === "en" ? "English only" : "Italian only"}
+              {LANG_LABELS[lang]}
             </label>
           ))}
         </fieldset>

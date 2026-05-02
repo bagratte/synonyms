@@ -22,7 +22,7 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
       <div className="card__prompt-row">
         <h1 className="card__prompt">
           {card.prompt.replace(/_/g, " ")}
-          <span className={`card__lang${card.promptLang === "it" ? " card__lang--it" : ""}`}>{card.promptLang}</span>
+          <span className={`card__lang${card.promptLang !== "en" ? ` card__lang--${card.promptLang}` : ""}`}>{card.promptLang}</span>
         </h1>
         <button
           className="card__info"

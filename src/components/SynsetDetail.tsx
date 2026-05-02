@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { loadSynsetMap } from "../data/loader";
 import type { Lang, Lemma, LemmaRef, Synset } from "../data/types";
+import { LANGS } from "../data/types";
 interface Props {
   synsetId: string;
   onNavigate: (id: string) => void;
@@ -25,7 +26,7 @@ function LemmaBlock({ lemma, lang, onNavigate }: { lemma: Lemma; lang: Lang; onN
   return (
     <div className="detail__lemma">
       <div className="detail__lemma-header">
-        <span className={`synset__lang${lang === "it" ? " synset__lang--it" : ""}`}>{lang.toUpperCase()}</span>
+        <span className={`synset__lang${lang !== "en" ? ` synset__lang--${lang}` : ""}`}>{lang.toUpperCase()}</span>
         <span className="detail__lemma-name">{lemma.name.replace(/_/g, " ")}</span>
         {!!lemma.count && <span className="detail__lemma-count">freq {lemma.count}</span>}
       </div>
@@ -68,10 +69,9 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
     );
   }
 
-  const allLemmas: { lemma: Lemma; lang: Lang }[] = [
-    ...(ss.en ?? []).map((l) => ({ lemma: l, lang: "en" as Lang })),
-    ...(ss.it ?? []).map((l) => ({ lemma: l, lang: "it" as Lang })),
-  ];
+  const allLemmas: { lemma: Lemma; lang: Lang }[] = LANGS.flatMap((lang) =>
+    (ss[lang] ?? []).map((l) => ({ lemma: l, lang }))
+  );
   const hasLemmaDetails = allLemmas.some(({ lemma: l }) => l.count || l.antonyms?.length);
 
   return (
@@ -86,40 +86,30 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
         </div>
 
         <div className="detail__lemmas">
-          {ss.en && ss.en.length > 0 && (
-            <div className="synset__row">
-              <span className="synset__lang">EN</span>
-              <span className="synset__words detail__words">
-                {ss.en.map((l, i) => (
-                  <span key={l.name}>
-                    {l.name.replace(/_/g, " ")}
-                    {l.count ? <sup className="detail__freq">{l.count}</sup> : null}
-                    {i < ss.en!.length - 1 ? ", " : ""}
-                  </span>
-                ))}
-              </span>
-            </div>
-          )}
-          {ss.it && ss.it.length > 0 && (
-            <div className="synset__row">
-              <span className="synset__lang synset__lang--it">IT</span>
-              <span className="synset__words synset__words--it detail__words">
-                {ss.it.map((l, i) => (
-                  <span key={l.name}>
-                    {l.name.replace(/_/g, " ")}
-                    {l.count ? <sup className="detail__freq">{l.count}</sup> : null}
-                    {i < ss.it!.length - 1 ? ", " : ""}
-                  </span>
-                ))}
-              </span>
-            </div>
-          )}
+          {LANGS.map((lang) => {
+            const lemmas = ss[lang];
+            if (!lemmas || lemmas.length === 0) return null;
+            return (
+              <div key={lang} className="synset__row">
+                <span className={`synset__lang${lang !== "en" ? ` synset__lang--${lang}` : ""}`}>{lang.toUpperCase()}</span>
+                <span className={`synset__words${lang !== "en" ? ` synset__words--${lang}` : ""} detail__words`}>
+                  {lemmas.map((l, i) => (
+                    <span key={l.name}>
+                      {l.name.replace(/_/g, " ")}
+                      {l.count ? <sup className="detail__freq">{l.count}</sup> : null}
+                      {i < lemmas.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         <div className="detail__defs">
           {(Object.entries(ss.def) as [Lang, string][]).map(([lang, d]) => (
             <p key={lang} className="detail__def">
-              <span className={`synset__lang${lang === "it" ? " synset__lang--it" : ""}`}>{lang.toUpperCase()}</span>
+              <span className={`synset__lang${lang !== "en" ? ` synset__lang--${lang}` : ""}`}>{lang.toUpperCase()}</span>
               "{d}"
             </p>
           ))}
@@ -129,7 +119,7 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
           <div className="detail__examples">
             {(Object.entries(ss.examples) as [Lang, string[]][]).map(([lang, exs]) => (
               <ul key={lang} className="detail__example-group">
-                <span className={`synset__lang${lang === "it" ? " synset__lang--it" : ""}`}>{lang.toUpperCase()}</span>
+                <span className={`synset__lang${lang !== "en" ? ` synset__lang--${lang}` : ""}`}>{lang.toUpperCase()}</span>
                 {exs.map((ex, i) => (
                   <li key={i} className="detail__example">{ex}</li>
                 ))}

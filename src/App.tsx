@@ -11,7 +11,7 @@ type Origin = "play" | "explore";
 
 export default function App() {
   const [view, setView] = useState<View>("play");
-  const [filter, setFilter] = useState<LangFilter>("both");
+  const [filter, setFilter] = useState<LangFilter>({ en: true, it: true, ru: false });
   const [showSettings, setShowSettings] = useState(false);
   const [detailStack, setDetailStack] = useState<string[]>([]);
   const [detailOrigin, setDetailOrigin] = useState<Origin>("explore");

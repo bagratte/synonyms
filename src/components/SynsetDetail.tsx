@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { loadSynsetMap } from "../data/loader";
 import type { Lemma, LemmaRef, Synset } from "../data/types";
-
 interface Props {
   synsetId: string;
   onNavigate: (id: string) => void;
@@ -11,44 +10,6 @@ interface Props {
 
 const POS_FULL: Record<string, string> = { n: "noun", v: "verb", a: "adj", s: "adj", r: "adv" };
 
-const RELATIONS: { key: string; label: string }[] = [
-  { key: "hypernyms",          label: "Hypernyms" },
-  { key: "instance_hypernyms", label: "Is instance of" },
-  { key: "hyponyms",           label: "Hyponyms" },
-  { key: "instance_hyponyms",  label: "Instances" },
-  { key: "part_meronyms",      label: "Parts" },
-  { key: "part_holonyms",      label: "Part of" },
-  { key: "member_meronyms",    label: "Members" },
-  { key: "member_holonyms",    label: "Member of" },
-  { key: "substance_meronyms", label: "Made of" },
-  { key: "substance_holonyms", label: "Substance of" },
-  { key: "similar",            label: "Similar" },
-  { key: "also",               label: "See also" },
-  { key: "attributes",         label: "Attributes" },
-  { key: "entailments",        label: "Entails" },
-  { key: "causes",             label: "Causes" },
-  { key: "verb_groups",        label: "Verb group" },
-  { key: "topic_domains",      label: "Topic" },
-  { key: "region_domains",     label: "Region" },
-  { key: "usage_domains",      label: "Usage" },
-  { key: "in_topic_domains",   label: "In topic" },
-  { key: "in_region_domains",  label: "In region" },
-  { key: "in_usage_domains",   label: "In usage" },
-];
-
-function chipLabel(ss: Synset): string {
-  const words = (ss.en ?? ss.it ?? []).slice(0, 2).map((l) => l.name.replace(/_/g, " "));
-  return words.join(", ") || ss.id;
-}
-
-function SynsetChip({ id, ssMap, onClick }: { id: string; ssMap: Map<string, Synset>; onClick: () => void }) {
-  const ss = ssMap.get(id);
-  return (
-    <button className="synset-chip" onClick={onClick} title={id}>
-      {ss ? chipLabel(ss) : id}
-    </button>
-  );
-}
 
 function LemmaRefChip({ data, onClick }: { data: LemmaRef; onClick: () => void }) {
   return (
@@ -59,13 +20,7 @@ function LemmaRefChip({ data, onClick }: { data: LemmaRef; onClick: () => void }
 }
 
 function LemmaBlock({ lemma, onNavigate }: { lemma: Lemma; onNavigate: (id: string) => void }) {
-  const hasDetails =
-    (lemma.antonyms?.length ?? 0) > 0 ||
-    (lemma.related?.length ?? 0) > 0 ||
-    (lemma.pertainyms?.length ?? 0) > 0 ||
-    (lemma.frames?.length ?? 0) > 0;
-
-  if (!hasDetails && !lemma.count) return null;
+  if (!lemma.count && !lemma.antonyms?.length) return null;
 
   return (
     <div className="detail__lemma">
@@ -79,36 +34,6 @@ function LemmaBlock({ lemma, onNavigate }: { lemma: Lemma; onNavigate: (id: stri
           <span className="detail__lemma-attr-values">
             {lemma.antonyms.map((r) => (
               <LemmaRefChip key={r.synset + r.lemma} data={r} onClick={() => onNavigate(r.synset)} />
-            ))}
-          </span>
-        </div>
-      )}
-      {lemma.related && lemma.related.length > 0 && (
-        <div className="detail__lemma-attr">
-          <span className="detail__lemma-attr-label">related</span>
-          <span className="detail__lemma-attr-values">
-            {lemma.related.map((r) => (
-              <LemmaRefChip key={r.synset + r.lemma} data={r} onClick={() => onNavigate(r.synset)} />
-            ))}
-          </span>
-        </div>
-      )}
-      {lemma.pertainyms && lemma.pertainyms.length > 0 && (
-        <div className="detail__lemma-attr">
-          <span className="detail__lemma-attr-label">pertainyms</span>
-          <span className="detail__lemma-attr-values">
-            {lemma.pertainyms.map((r) => (
-              <LemmaRefChip key={r.synset + r.lemma} data={r} onClick={() => onNavigate(r.synset)} />
-            ))}
-          </span>
-        </div>
-      )}
-      {lemma.frames && lemma.frames.length > 0 && (
-        <div className="detail__lemma-attr">
-          <span className="detail__lemma-attr-label">frames</span>
-          <span className="detail__lemma-attr-values">
-            {lemma.frames.map((f, i) => (
-              <span key={i} className="detail__frame">{f}</span>
             ))}
           </span>
         </div>
@@ -143,14 +68,7 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
   }
 
   const allLemmas = [...(ss.en ?? []), ...(ss.it ?? [])];
-  const hasLemmaDetails = allLemmas.some(
-    (l) => l.count || l.antonyms?.length || l.related?.length || l.pertainyms?.length || l.frames?.length
-  );
-
-  const relationEntries = RELATIONS.flatMap(({ key, label }) => {
-    const ids = (ss as unknown as Record<string, unknown>)[key] as string[] | undefined;
-    return ids?.length ? [{ key, label, ids }] : [];
-  });
+  const hasLemmaDetails = allLemmas.some((l) => l.count || l.antonyms?.length);
 
   return (
     <div className="detail">
@@ -202,21 +120,6 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
               <li key={i} className="detail__example">{ex}</li>
             ))}
           </ul>
-        )}
-
-        {relationEntries.length > 0 && (
-          <div className="detail__relations">
-            {relationEntries.map(({ key, label, ids }) => (
-              <div key={key} className="detail__section">
-                <div className="detail__section-title">{label}</div>
-                <div className="detail__chips">
-                  {ids.map((id) => (
-                    <SynsetChip key={id} id={id} ssMap={ssMap} onClick={() => onNavigate(id)} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
         )}
 
         {hasLemmaDetails && (

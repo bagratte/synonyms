@@ -32,7 +32,8 @@ function getLemmas(ss: Synset, filter: LangFilter): { word: string; lang: Lang }
 function buildCard(
   synsets: Synset[],
   filter: LangFilter,
-  byPos: Map<string, Synset[]>
+  byPos: Map<string, Synset[]>,
+  byHypernym: Map<string, Synset[]>
 ): Card | null {
   // Eligible synsets: have at least 2 lemmas in the active language(s)
   const eligible = synsets.filter((ss) => getLemmas(ss, filter).length >= 2);
@@ -50,14 +51,24 @@ function buildCard(
   const numCorrect = Math.floor(Math.random() * maxCorrect) + 1;
   const correctWords = remaining.slice(0, numCorrect);
 
-  // Distractors: words from other synsets with same POS, any active language
+  // Distractors: prefer semantic siblings (co-hyponyms), fall back to same-POS
   const numDistractors = OPTIONS_COUNT - correctWords.length;
-  const pool = byPos.get(ss.pos) ?? [];
   const usedWords = new Set([promptEntry.word, ...correctWords.map((l) => l.word)]);
   const distractors: Option[] = [];
 
-  const shuffledPool = shuffle(pool);
-  for (const candidate of shuffledPool) {
+  // Build sibling pool: synsets sharing a hypernym with ss, same POS
+  const siblingSet = new Set<Synset>();
+  for (const hId of ss.hypernyms ?? []) {
+    for (const sibling of byHypernym.get(hId) ?? []) {
+      if (sibling.id !== ss.id && sibling.pos === ss.pos) siblingSet.add(sibling);
+    }
+  }
+  const siblings = shuffle([...siblingSet]);
+  const siblingIds = new Set(siblings.map((s) => s.id));
+  const fallback = shuffle((byPos.get(ss.pos) ?? []).filter((s) => !siblingIds.has(s.id)));
+  const candidatePool = [...siblings, ...fallback];
+
+  for (const candidate of candidatePool) {
     if (distractors.length >= numDistractors) break;
     if (candidate.id === ss.id) continue;
     const candidateLemmas = getLemmas(candidate, filter).filter(
@@ -88,29 +99,37 @@ function buildCard(
 export function useGame(filter: LangFilter) {
   const [synsets, setSynsets] = useState<Synset[] | null>(null);
   const [byPos, setByPos] = useState<Map<string, Synset[]>>(new Map());
+  const [byHypernym, setByHypernym] = useState<Map<string, Synset[]>>(new Map());
   const [card, setCard] = useState<Card | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     loadSynsets().then((data) => {
-      const map = new Map<string, Synset[]>();
+      const posMap = new Map<string, Synset[]>();
+      const hypMap = new Map<string, Synset[]>();
       for (const ss of data) {
-        const list = map.get(ss.pos) ?? [];
-        list.push(ss);
-        map.set(ss.pos, list);
+        const posList = posMap.get(ss.pos) ?? [];
+        posList.push(ss);
+        posMap.set(ss.pos, posList);
+        for (const hId of ss.hypernyms ?? []) {
+          const hList = hypMap.get(hId) ?? [];
+          hList.push(ss);
+          hypMap.set(hId, hList);
+        }
       }
       setSynsets(data);
-      setByPos(map);
+      setByPos(posMap);
+      setByHypernym(hypMap);
     });
   }, []);
 
   const nextCard = useCallback(() => {
     if (!synsets) return;
-    setCard(buildCard(synsets, filter, byPos));
+    setCard(buildCard(synsets, filter, byPos, byHypernym));
     setSelected(new Set());
     setSubmitted(false);
-  }, [synsets, filter, byPos]);
+  }, [synsets, filter, byPos, byHypernym]);
 
   useEffect(() => {
     if (synsets) nextCard();

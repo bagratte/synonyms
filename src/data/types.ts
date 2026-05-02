@@ -20,6 +20,7 @@ export interface Synset {
   examples?: Partial<Record<Lang, string[]>>;
   en?: Lemma[];
   it?: Lemma[];
+  hypernyms?: string[];
 }
 
 export interface Card {

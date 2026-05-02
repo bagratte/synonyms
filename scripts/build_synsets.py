@@ -63,12 +63,17 @@ def build():
         defs = {key: ss.definition(lang=lang) for lang, key in LANG_KEYS.items() if ss.definition(lang=lang)}
         examples = {key: exs for lang, key in LANG_KEYS.items() if (exs := ss.examples(lang=lang))}
 
+        hyps = [h.name() for h in ss.hypernyms() + ss.instance_hypernyms() + ss.similar_tos()]
+
         entry = {
             "id": ss.name(),
             "pos": ss.pos(),
             "lexname": ss.lexname(),
             "def": defs,
         }
+
+        if hyps:
+            entry["hypernyms"] = hyps
 
         if examples:
             entry["examples"] = examples

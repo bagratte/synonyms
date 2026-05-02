@@ -307,14 +307,8 @@ body { margin: 0; }
   gap: 10px;
 }
 
-.explore__search-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .explore__search {
-  flex: 1;
+  width: 100%;
   padding: 10px 14px;
   border-radius: var(--radius);
   border: 1.5px solid var(--border);
@@ -327,7 +321,13 @@ body { margin: 0; }
 .explore__search:focus { border-color: var(--accent); }
 .explore__search::placeholder { color: var(--text-muted); }
 
-.explore__whole-word {
+.explore__toggles {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.explore__toggle {
   display: flex;
   align-items: center;
   gap: 5px;

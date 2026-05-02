@@ -24,7 +24,9 @@ export function Explore({ onNavigate }: Props) {
   const [synsets, setSynsets] = useState<Synset[] | null>(null);
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState<PosFilter>("all");
-  const [wholeWord, setWholeWord] = useState(true);
+  const [wholeWord, setWholeWord] = useState(false);
+  const [matchLemmas, setMatchLemmas] = useState(true);
+  const [matchSynsets, setMatchSynsets] = useState(false);
   const [count, setCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const deferredSearch = useDeferredValue(search);
@@ -37,21 +39,23 @@ export function Explore({ onNavigate }: Props) {
     const regex = q && wholeWord
       ? new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")
       : null;
-    const matches = (name: string) => {
-      const text = name.replace(/_/g, " ");
-      return regex ? regex.test(text) : text.toLowerCase().includes(q);
-    };
+    const test = (text: string) => regex ? regex.test(text) : text.toLowerCase().includes(q);
+    const matchLemmaName = (name: string) => test(name.replace(/_/g, " "));
+    const matchSynsetId = (id: string) => test(id);
     return synsets.filter((ss) => {
       if (posFilter !== "all") {
         const posMatch = posFilter === "a" ? ss.pos === "a" || ss.pos === "s" : ss.pos === posFilter;
         if (!posMatch) return false;
       }
-      if (q) return ss.en?.some((l) => matches(l.name)) || ss.it?.some((l) => matches(l.name));
+      if (q && (matchLemmas || matchSynsets)) {
+        return (matchLemmas && (ss.en?.some((l) => matchLemmaName(l.name)) || ss.it?.some((l) => matchLemmaName(l.name))))
+            || (matchSynsets && matchSynsetId(ss.id));
+      }
       return true;
     });
-  }, [synsets, deferredSearch, posFilter, wholeWord]);
+  }, [synsets, deferredSearch, posFilter, wholeWord, matchLemmas, matchSynsets]);
 
-  useEffect(() => { setCount(PAGE_SIZE); }, [deferredSearch, posFilter, wholeWord]);
+  useEffect(() => { setCount(PAGE_SIZE); }, [deferredSearch, posFilter, wholeWord, matchLemmas, matchSynsets]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -70,23 +74,25 @@ export function Explore({ onNavigate }: Props) {
   return (
     <div className="explore">
       <div className="explore__controls">
-        <div className="explore__search-row">
-          <input
-            className="explore__search"
-            type="search"
-            placeholder="Search words…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            autoFocus
-          />
-          <label className="explore__whole-word">
-            <input
-              type="checkbox"
-              checked={wholeWord}
-              onChange={(e) => setWholeWord(e.target.checked)}
-            />
-            whole word
-          </label>
+        <input
+          className="explore__search"
+          type="search"
+          placeholder="Search words…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          autoFocus
+        />
+        <div className="explore__toggles">
+          {([
+            { label: "whole word",    checked: wholeWord,     set: setWholeWord },
+            { label: "synset names",  checked: matchSynsets,  set: setMatchSynsets },
+            { label: "lemma names",   checked: matchLemmas,   set: setMatchLemmas },
+          ] as const).map(({ label, checked, set }) => (
+            <label key={label} className="explore__toggle">
+              <input type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)} />
+              {label}
+            </label>
+          ))}
         </div>
         <div className="explore__filters">
           {POS_FILTERS.map(({ key, label }) => (

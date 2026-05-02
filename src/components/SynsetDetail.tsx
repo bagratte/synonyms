@@ -19,12 +19,13 @@ function LemmaRefChip({ data, onClick }: { data: LemmaRef; onClick: () => void }
   );
 }
 
-function LemmaBlock({ lemma, onNavigate }: { lemma: Lemma; onNavigate: (id: string) => void }) {
+function LemmaBlock({ lemma, lang, onNavigate }: { lemma: Lemma; lang: Lang; onNavigate: (id: string) => void }) {
   if (!lemma.count && !lemma.antonyms?.length) return null;
 
   return (
     <div className="detail__lemma">
       <div className="detail__lemma-header">
+        <span className={`synset__lang${lang === "it" ? " synset__lang--it" : ""}`}>{lang.toUpperCase()}</span>
         <span className="detail__lemma-name">{lemma.name.replace(/_/g, " ")}</span>
         {!!lemma.count && <span className="detail__lemma-count">freq {lemma.count}</span>}
       </div>
@@ -67,8 +68,11 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
     );
   }
 
-  const allLemmas = [...(ss.en ?? []), ...(ss.it ?? [])];
-  const hasLemmaDetails = allLemmas.some((l) => l.count || l.antonyms?.length);
+  const allLemmas: { lemma: Lemma; lang: Lang }[] = [
+    ...(ss.en ?? []).map((l) => ({ lemma: l, lang: "en" as Lang })),
+    ...(ss.it ?? []).map((l) => ({ lemma: l, lang: "it" as Lang })),
+  ];
+  const hasLemmaDetails = allLemmas.some(({ lemma: l }) => l.count || l.antonyms?.length);
 
   return (
     <div className="detail">
@@ -137,8 +141,8 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
         {hasLemmaDetails && (
           <div className="detail__lemma-details">
             <div className="detail__section-title">Lemma details</div>
-            {allLemmas.map((l) => (
-              <LemmaBlock key={l.name} lemma={l} onNavigate={onNavigate} />
+            {allLemmas.map(({ lemma: l, lang }) => (
+              <LemmaBlock key={l.name} lemma={l} lang={lang} onNavigate={onNavigate} />
             ))}
           </div>
         )}

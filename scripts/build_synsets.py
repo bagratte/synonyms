@@ -47,7 +47,6 @@ def build_lemma(lemma) -> dict:
     return d
 
 
-
 def build():
     synsets = []
 

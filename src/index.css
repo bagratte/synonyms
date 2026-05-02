@@ -167,7 +167,7 @@ body { margin: 0; }
   opacity: 0.6;
 }
 .card__lang--it { color: #e64980; }
-.card__lang--ru { color: #0c8599; }
+.card__lang--ru { color: #2f9e44; }
 
 .card__def {
   color: var(--text-muted);
@@ -461,11 +461,12 @@ body { margin: 0; }
   width: 18px;
 }
 .synset__lang--it { color: #e64980; }
-.synset__lang--ru { color: #0c8599; }
+.synset__lang--ru { color: #2f9e44; }
 
 @media (prefers-color-scheme: dark) {
+  .card__lang--ru { color: #69db7c; }
   .synset__lang--it { color: #f783ac; }
-  .synset__lang--ru { color: #22b8cf; }
+  .synset__lang--ru { color: #69db7c; }
 }
 
 .synset__words {

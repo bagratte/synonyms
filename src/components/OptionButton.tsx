@@ -24,6 +24,7 @@ export function OptionButton({ option, selected, submitted, onToggle }: Props) {
       disabled={submitted}
     >
       {option.word.replace(/_/g, " ")}
+      <span className={`card__lang${option.lang === "it" ? " card__lang--it" : ""}`}>{option.lang}</span>
     </button>
   );
 }

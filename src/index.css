@@ -307,8 +307,14 @@ body { margin: 0; }
   gap: 10px;
 }
 
+.explore__search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .explore__search {
-  width: 100%;
+  flex: 1;
   padding: 10px 14px;
   border-radius: var(--radius);
   border: 1.5px solid var(--border);
@@ -320,6 +326,17 @@ body { margin: 0; }
 }
 .explore__search:focus { border-color: var(--accent); }
 .explore__search::placeholder { color: var(--text-muted); }
+
+.explore__whole-word {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
 
 .explore__filters {
   display: flex;

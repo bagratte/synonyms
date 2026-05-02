@@ -24,6 +24,7 @@ export function Explore({ onNavigate }: Props) {
   const [synsets, setSynsets] = useState<Synset[] | null>(null);
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState<PosFilter>("all");
+  const [wholeWord, setWholeWord] = useState(true);
   const [count, setCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const deferredSearch = useDeferredValue(search);
@@ -33,17 +34,24 @@ export function Explore({ onNavigate }: Props) {
   const filtered = useMemo(() => {
     if (!synsets) return [];
     const q = deferredSearch.trim().toLowerCase();
+    const regex = q && wholeWord
+      ? new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")
+      : null;
+    const matches = (name: string) => {
+      const text = name.replace(/_/g, " ");
+      return regex ? regex.test(text) : text.toLowerCase().includes(q);
+    };
     return synsets.filter((ss) => {
       if (posFilter !== "all") {
         const posMatch = posFilter === "a" ? ss.pos === "a" || ss.pos === "s" : ss.pos === posFilter;
         if (!posMatch) return false;
       }
-      if (q) return ss.en?.some((l) => l.name.toLowerCase().includes(q)) || ss.it?.some((l) => l.name.toLowerCase().includes(q));
+      if (q) return ss.en?.some((l) => matches(l.name)) || ss.it?.some((l) => matches(l.name));
       return true;
     });
-  }, [synsets, deferredSearch, posFilter]);
+  }, [synsets, deferredSearch, posFilter, wholeWord]);
 
-  useEffect(() => { setCount(PAGE_SIZE); }, [deferredSearch, posFilter]);
+  useEffect(() => { setCount(PAGE_SIZE); }, [deferredSearch, posFilter, wholeWord]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -62,14 +70,24 @@ export function Explore({ onNavigate }: Props) {
   return (
     <div className="explore">
       <div className="explore__controls">
-        <input
-          className="explore__search"
-          type="search"
-          placeholder="Search words…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          autoFocus
-        />
+        <div className="explore__search-row">
+          <input
+            className="explore__search"
+            type="search"
+            placeholder="Search words…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+          />
+          <label className="explore__whole-word">
+            <input
+              type="checkbox"
+              checked={wholeWord}
+              onChange={(e) => setWholeWord(e.target.checked)}
+            />
+            whole word
+          </label>
+        </div>
         <div className="explore__filters">
           {POS_FILTERS.map(({ key, label }) => (
             <button
@@ -86,19 +104,32 @@ export function Explore({ onNavigate }: Props) {
         </div>
       </div>
 
+
       <div className="explore__list">
         {synsets === null && <p className="status">Loading…</p>}
         {synsets !== null && filtered.length === 0 && <p className="status">No results.</p>}
-        {visible.map((ss) => <SynsetRow key={ss.id} ss={ss} query={q} onClick={() => onNavigate(ss.id)} />)}
+        {visible.map((ss) => <SynsetRow key={ss.id} ss={ss} query={q} wholeWord={wholeWord} onClick={() => onNavigate(ss.id)} />)}
         <div ref={sentinelRef} />
       </div>
     </div>
   );
 }
 
-function highlight(word: string, query: string) {
+function highlight(word: string, query: string, wholeWord: boolean) {
   const text = word.replace(/_/g, " ");
   if (!query) return text;
+  if (wholeWord) {
+    const re = new RegExp(`\\b(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b`, "i");
+    const m = re.exec(text);
+    if (!m) return text;
+    return (
+      <>
+        {text.slice(0, m.index)}
+        <mark>{m[0]}</mark>
+        {text.slice(m.index + m[0].length)}
+      </>
+    );
+  }
   const idx = text.toLowerCase().indexOf(query);
   if (idx === -1) return text;
   return (
@@ -110,7 +141,7 @@ function highlight(word: string, query: string) {
   );
 }
 
-const SynsetRow = memo(function SynsetRow({ ss, query, onClick }: { ss: Synset; query: string; onClick: () => void }) {
+const SynsetRow = memo(function SynsetRow({ ss, query, wholeWord, onClick }: { ss: Synset; query: string; wholeWord: boolean; onClick: () => void }) {
   return (
     <div className="synset synset--clickable" onClick={onClick}>
       <span className={`synset__pos synset__pos--${ss.pos}`}>{POS_SHORT[ss.pos]}</span>
@@ -120,7 +151,7 @@ const SynsetRow = memo(function SynsetRow({ ss, query, onClick }: { ss: Synset; 
             <span className="synset__lang">EN</span>
             <span className="synset__words">
               {ss.en.map((l, i) => (
-                <span key={l.name}>{highlight(l.name, query)}{i < ss.en!.length - 1 ? ", " : ""}</span>
+                <span key={l.name}>{highlight(l.name, query, wholeWord)}{i < ss.en!.length - 1 ? ", " : ""}</span>
               ))}
             </span>
           </div>
@@ -130,7 +161,7 @@ const SynsetRow = memo(function SynsetRow({ ss, query, onClick }: { ss: Synset; 
             <span className="synset__lang synset__lang--it">IT</span>
             <span className="synset__words synset__words--it">
               {ss.it.map((l, i) => (
-                <span key={l.name}>{highlight(l.name, query)}{i < ss.it!.length - 1 ? ", " : ""}</span>
+                <span key={l.name}>{highlight(l.name, query, wholeWord)}{i < ss.it!.length - 1 ? ", " : ""}</span>
               ))}
             </span>
           </div>

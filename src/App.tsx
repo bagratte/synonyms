@@ -6,12 +6,27 @@ import { Settings } from "./components/Settings";
 import { SynsetDetail } from "./components/SynsetDetail";
 import type { LangFilter } from "./data/types";
 
+const FILTER_KEY = "langFilter";
+const DEFAULT_FILTER: LangFilter = { en: true, it: true, ru: true };
+
+function loadFilter(): LangFilter {
+  try {
+    const raw = localStorage.getItem(FILTER_KEY);
+    if (raw) return { ...DEFAULT_FILTER, ...JSON.parse(raw) };
+  } catch {}
+  return DEFAULT_FILTER;
+}
+
+function saveFilter(f: LangFilter) {
+  localStorage.setItem(FILTER_KEY, JSON.stringify(f));
+}
+
 type View = "play" | "explore" | "detail";
 type Origin = "play" | "explore";
 
 export default function App() {
   const [view, setView] = useState<View>("play");
-  const [filter, setFilter] = useState<LangFilter>({ en: true, it: true, ru: false });
+  const [filter, setFilter] = useState<LangFilter>(loadFilter);
   const [showSettings, setShowSettings] = useState(false);
   const [detailStack, setDetailStack] = useState<string[]>([]);
   const [detailOrigin, setDetailOrigin] = useState<Origin>("explore");
@@ -97,7 +112,7 @@ export default function App() {
       {showSettings && (
         <Settings
           filter={filter}
-          onChange={setFilter}
+          onChange={(f) => { setFilter(f); saveFilter(f); }}
           onClose={() => setShowSettings(false)}
         />
       )}

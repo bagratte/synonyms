@@ -15,7 +15,7 @@ Schema:
   }, ...]
 
 Only synsets with at least one lemma from any adapter are included.
-Definitions and examples are sourced from NLTK/OMW for languages that have them there.
+Definitions come from NLTK/OMW or the language adapter (e.g. RuWordNet). Examples from NLTK only.
 
 To add a language: implement LangAdapter, add it to ADAPTERS.
 To swap a source: replace the adapter instance in ADAPTERS.
@@ -35,6 +35,9 @@ class LangAdapter(ABC):
     def lemmas_for(self, synset_name: str, offset: int, pos: str) -> list[dict]:
         """Return lemma dicts for the given PWN synset. Each dict has at least 'name'."""
         ...
+
+    def definition_for(self, offset: int, pos: str) -> str | None:
+        return None
 
 
 class NLTKOMWAdapter(LangAdapter):
@@ -65,10 +68,11 @@ class RuWordNetAdapter(LangAdapter):
 
     def __init__(self):
         self._index: dict[str, list[dict]] | None = None
+        self._def_index: dict[str, str] | None = None
 
     def _load(self) -> None:
         try:
-            from ruwordnet.models import Sense, ili_table
+            from ruwordnet.models import Sense, Synset, ili_table
             from ruwordnet.utils import get_default_session
         except ImportError:
             raise RuntimeError("ruwordnet not installed — run: pip install ruwordnet")
@@ -82,24 +86,38 @@ class RuWordNetAdapter(LangAdapter):
                 "Run: .venv/bin/python -m ruwordnet download"
             )
 
-        # Two bulk queries instead of N+1 ORM lazy loads.
+        # Bulk queries instead of N+1 ORM lazy loads.
         senses_by_synset: dict[str, list[dict]] = {}
         for synset_id, name in session.query(Sense.synset_id, Sense.name).all():
             senses_by_synset.setdefault(synset_id, []).append({"name": name})
 
+        defs_by_synset: dict[str, str] = {
+            synset_id: definition
+            for synset_id, definition in session.query(Synset.id, Synset.definition).all()
+            if definition
+        }
+
         index: dict[str, list[dict]] = {}
+        def_index: dict[str, str] = {}
         for ruwn_id, wn_id in session.execute(ili_table.select()).fetchall():
-            lemmas = senses_by_synset.get(ruwn_id)
-            if lemmas:
+            if lemmas := senses_by_synset.get(ruwn_id):
                 index.setdefault(wn_id, []).extend(lemmas)
+            if definition := defs_by_synset.get(ruwn_id):
+                def_index.setdefault(wn_id, definition)
 
         self._index = index
+        self._def_index = def_index
         print(f" {len(index)} synsets mapped", file=sys.stderr)
 
     def lemmas_for(self, synset_name: str, offset: int, pos: str) -> list[dict]:
         if self._index is None:
             self._load()
         return self._index.get("{:08d}-{}".format(offset, pos), [])
+
+    def definition_for(self, offset: int, pos: str) -> str | None:
+        if self._def_index is None:
+            self._load()
+        return self._def_index.get("{:08d}-{}".format(offset, pos))
 
 
 # Edit here to add languages or swap sources.
@@ -136,6 +154,10 @@ def build() -> list[dict]:
             for lang, key in _NLTK_DEF_LANGS.items()
             if ss.definition(lang=lang)
         }
+        for lang_key, adapter in ADAPTERS.items():
+            if lang_key not in defs:
+                if d := adapter.definition_for(ss.offset(), ss.pos()):
+                    defs[lang_key] = d
         examples = {
             key: exs
             for lang, key in _NLTK_DEF_LANGS.items()

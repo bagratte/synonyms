@@ -16,8 +16,8 @@ export interface Synset {
   id: string;
   pos: Pos;
   lexname: string;
-  def: string;
-  examples?: string[];
+  def: Partial<Record<Lang, string>>;
+  examples?: Partial<Record<Lang, string[]>>;
   en?: Lemma[];
   it?: Lemma[];
 }

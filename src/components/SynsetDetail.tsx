@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { loadSynsetMap } from "../data/loader";
-import type { Lemma, LemmaRef, Synset } from "../data/types";
+import type { Lang, Lemma, LemmaRef, Synset } from "../data/types";
 interface Props {
   synsetId: string;
   onNavigate: (id: string) => void;
@@ -112,14 +112,26 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
           )}
         </div>
 
-        <p className="detail__def">"{ss.def}"</p>
+        <div className="detail__defs">
+          {(Object.entries(ss.def) as [Lang, string][]).map(([lang, d]) => (
+            <p key={lang} className="detail__def">
+              <span className={`synset__lang${lang === "it" ? " synset__lang--it" : ""}`}>{lang.toUpperCase()}</span>
+              "{d}"
+            </p>
+          ))}
+        </div>
 
-        {ss.examples && ss.examples.length > 0 && (
-          <ul className="detail__examples">
-            {ss.examples.map((ex, i) => (
-              <li key={i} className="detail__example">{ex}</li>
+        {ss.examples && (
+          <div className="detail__examples">
+            {(Object.entries(ss.examples) as [Lang, string[]][]).map(([lang, exs]) => (
+              <ul key={lang} className="detail__example-group">
+                <span className={`synset__lang${lang === "it" ? " synset__lang--it" : ""}`}>{lang.toUpperCase()}</span>
+                {exs.map((ex, i) => (
+                  <li key={i} className="detail__example">{ex}</li>
+                ))}
+              </ul>
             ))}
-          </ul>
+          </div>
         )}
 
         {hasLemmaDetails && (

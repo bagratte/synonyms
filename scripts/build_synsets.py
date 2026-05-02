@@ -10,6 +10,8 @@ Schema:
       "lexname": "adj.all",
       "def": "experiencing or showing happiness",
       "examples": ["a happy smile"],     # omitted if empty
+      "def": {"en": "experiencing or showing happiness", "it": "..."},  # lang keys omitted if no data
+      "examples": {"en": ["a happy smile"]},                           # omitted entirely if empty
       "en": [{"name": "happy", "count": 12, "antonyms": [{"synset": "unhappy.a.01", "lemma": "unhappy"}]}],
       "it": [{"name": "felice"}],        # omitted if no coverage
     },
@@ -59,14 +61,16 @@ def build():
         if not lemmas_by_lang:
             continue
 
+        defs = {key: ss.definition(lang=lang) for lang, key in LANG_KEYS.items() if ss.definition(lang=lang)}
+        examples = {key: exs for lang, key in LANG_KEYS.items() if (exs := ss.examples(lang=lang))}
+
         entry = {
             "id": ss.name(),
             "pos": ss.pos(),
             "lexname": ss.lexname(),
-            "def": ss.definition(),
+            "def": defs,
         }
 
-        examples = ss.examples()
         if examples:
             entry["examples"] = examples
 

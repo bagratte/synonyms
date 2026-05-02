@@ -27,6 +27,8 @@ export interface Card {
   promptLang: Lang;
   synsetId: string;
   options: Option[];
+  def?: string;
+  examples?: string[];
 }
 
 export interface Option {

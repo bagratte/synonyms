@@ -31,6 +31,17 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
         </button>
       </div>
 
+      {card.def && (
+        <div className="card__def">
+          <p className="card__def-text">"{card.def}"</p>
+          {card.examples && card.examples.length > 0 && (
+            <ul className="card__examples">
+              {card.examples.map((ex, i) => <li key={i}>{ex}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
       <div className="card__options">
         {card.options.map((opt) => (
           <OptionButton

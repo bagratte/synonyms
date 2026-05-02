@@ -74,7 +74,15 @@ function buildCard(
     ...distractors,
   ]);
 
-  return { prompt: promptEntry.word, promptLang: promptEntry.lang, synsetId: ss.id, options };
+  const lang = promptEntry.lang;
+  return {
+    prompt: promptEntry.word,
+    promptLang: lang,
+    synsetId: ss.id,
+    options,
+    def: ss.def[lang],
+    examples: ss.examples?.[lang],
+  };
 }
 
 export function useGame(filter: LangFilter) {

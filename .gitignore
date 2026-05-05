@@ -13,6 +13,8 @@ dist-ssr
 *.local
 
 .venv
+__pycache__
+
 .playwright-mcp
 
 # Editor directories and files

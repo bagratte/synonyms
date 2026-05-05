@@ -26,18 +26,18 @@ This is a multilingual synonym flashcard trainer (English, Italian, Russian). It
 
 ### 1. Data pipeline (Python, one-time)
 
-`scripts/build_synsets.py` pulls from NLTK's WordNet + Open Multilingual Wordnet (OMW) for English and Italian, and RuWordNet for Russian, then writes `public/synsets.json`. The venv lives at `.venv/`. NLTK data is downloaded to `~/nltk_data/` (unzipped manually — the zips alone aren't enough for `wn.all_synsets()` to work). RuWordNet is installed via `pip install ruwordnet` and its DB via `python -m ruwordnet download`.
+`scripts/build_synsets.py` pulls from Open English WordNet (`oewn:2025+`) via the `wn` library for English, OMW (`omw-it:2.0`) for Italian, and RuWordNet for Russian, then writes `public/synsets.json`. The venv lives at `.venv/`. WordNet data is managed by `wn` (`pip install wn`; lexicons downloaded with `wn.download(...)`). RuWordNet is installed via `pip install ruwordnet` and its DB via `python -m ruwordnet download`.
 
 The language architecture is pluggable: each language is a `LangAdapter` subclass registered in `ADAPTERS`. To add a language, implement the adapter and add it there — no other changes needed.
 
 The JSON schema is a flat array of synsets:
 ```json
 [{
-  "id": "happy.a.01", "pos": "a", "lexname": "adj.all",
-  "def": {"en": "experiencing or showing happiness", "ru": "..."},
+  "id": "oewn-01151786-a", "pos": "a", "lexname": "adj.all",
+  "def": {"en": "enjoying or showing or marked by joy or pleasure", "ru": "..."},
   "examples": {"en": ["a happy smile"]},
-  "hypernyms": ["felicitous.a.01"],
-  "en": [{"name": "happy", "count": 12, "antonyms": [{"synset": "unhappy.a.01", "lemma": "unhappy"}]}],
+  "hypernyms": ["oewn-01152267-s"],
+  "en": [{"name": "happy", "count": 37, "antonyms": [{"synset": "oewn-01152997-a", "lemma": "unhappy"}]}],
   "it": [{"name": "felice"}],
   "ru": [{"name": "счастливый"}]
 }, ...]

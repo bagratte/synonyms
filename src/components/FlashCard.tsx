@@ -19,20 +19,12 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
   return (
     <div className="card">
       <p className="card__hint">Select all synonyms</p>
-      <div className="card__prompt-row">
-        <h1 className="card__prompt">
+      <h1 className="card__prompt">
+        <button className="card__prompt-word" onClick={() => onViewSynset(card.synsetId)}>
           {card.prompt.replace(/_/g, " ")}
-          <span className={`card__lang${card.promptLang !== "en" ? ` card__lang--${card.promptLang}` : ""}`}>{card.promptLang}</span>
-        </h1>
-        <button
-          className="card__info"
-          onClick={() => onViewSynset(card.synsetId)}
-          aria-label="View synset details"
-          title="View details"
-        >
-          ⓘ
         </button>
-      </div>
+        <span className={`card__lang${card.promptLang !== "en" ? ` card__lang--${card.promptLang}` : ""}`}>{card.promptLang}</span>
+      </h1>
 
       {card.def && (
         <div className="card__def">

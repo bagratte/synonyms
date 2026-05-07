@@ -80,34 +80,37 @@ export default function App() {
         </div>
       </header>
 
-      {view === "play" && (
+      {(view === "play" || view === "detail") && (
         <main className="main">
-          {loading && <p className="status">Loading...</p>}
-          {!loading && !card && <p className="status">No words available for this filter.</p>}
-          {!loading && card && (
-            <FlashCard
-              card={card}
-              selected={selected}
-              submitted={submitted}
-              onToggle={toggle}
-              onSubmit={submit}
-              onNext={nextCard}
-              onViewSynset={(id) => openDetail(id, "play")}
+          {view === "play" && (
+            <>
+              {loading && <p className="status">Loading...</p>}
+              {!loading && !card && <p className="status">No words available for this filter.</p>}
+              {!loading && card && (
+                <FlashCard
+                  card={card}
+                  selected={selected}
+                  submitted={submitted}
+                  onToggle={toggle}
+                  onSubmit={submit}
+                  onNext={nextCard}
+                  onViewSynset={(id) => openDetail(id, "play")}
+                />
+              )}
+            </>
+          )}
+          {view === "detail" && currentDetailId && (
+            <SynsetDetail
+              synsetId={currentDetailId}
+              onNavigate={pushDetail}
+              onBack={goBack}
+              backLabel={backLabel}
             />
           )}
         </main>
       )}
 
       {view === "explore" && <Explore onNavigate={(id) => openDetail(id, "explore")} />}
-
-      {view === "detail" && currentDetailId && (
-        <SynsetDetail
-          synsetId={currentDetailId}
-          onNavigate={pushDetail}
-          onBack={goBack}
-          backLabel={backLabel}
-        />
-      )}
 
       {showSettings && (
         <Settings

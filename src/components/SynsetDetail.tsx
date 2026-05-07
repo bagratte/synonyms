@@ -125,7 +125,7 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
     <div className="detail">
       <button className="detail__back" onClick={onBack}>← {backLabel}</button>
 
-      <div className="detail__card">
+      <div className="detail__card" key={synsetId}>
         <div className="detail__meta">
           <span className={`synset__pos synset__pos--${ss.pos}`}>{POS_FULL[ss.pos]}</span>
           <span className="detail__id">{ss.id}</span>

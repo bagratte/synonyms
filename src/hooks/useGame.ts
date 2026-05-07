@@ -18,9 +18,9 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function getLemmas(group: Synset[], filter: LangFilter): { word: string; lang: Lang }[] {
+function getLemmas(group: Synset[], filter: LangFilter): { word: string; lang: Lang; synsetId: string }[] {
   return group.flatMap((ss) =>
-    filter[ss.lang] ? ss.lemmas.map((l) => ({ word: l.name, lang: ss.lang })) : []
+    filter[ss.lang] ? ss.lemmas.map((l) => ({ word: l.name, lang: ss.lang, synsetId: ss.id })) : []
   );
 }
 

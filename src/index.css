@@ -213,6 +213,12 @@ body { margin: 0; }
 .option:hover:not(:disabled) {
   border-color: var(--accent);
 }
+.option--submitted {
+  cursor: pointer;
+}
+.option--submitted:hover {
+  filter: brightness(0.93);
+}
 .option--selected {
   background: var(--selected-bg);
   border-color: var(--selected-border);

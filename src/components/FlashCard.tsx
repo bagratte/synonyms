@@ -45,6 +45,7 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
             selected={selected.has(opt.word)}
             submitted={submitted}
             onToggle={onToggle}
+            onNavigate={onViewSynset}
           />
         ))}
       </div>

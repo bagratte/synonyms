@@ -38,6 +38,7 @@ export interface Option {
   word: string;
   lang: Lang;
   correct: boolean;
+  synsetId: string;
 }
 
 export type LangFilter = Record<Lang, boolean>;

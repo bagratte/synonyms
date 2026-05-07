@@ -6,7 +6,7 @@ let iliCache: Map<string, Synset[]> | null = null;
 
 export async function loadSynsets(): Promise<Synset[]> {
   if (cache) return cache;
-  const res = await fetch("/synsets.json");
+  const res = await fetch(`${import.meta.env.BASE_URL}synsets.json`);
   cache = await res.json();
   return cache!;
 }

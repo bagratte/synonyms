@@ -49,9 +49,11 @@ Each entry belongs to one lexicon (`lang`). Cross-language linking uses the `ili
 
 **Data flow:**
 - `useGame(filter)` (`src/hooks/useGame.ts`) owns all game state. It builds `byPos`, `byHypernym`, and `byILI` indices on load.
-- Each card is built by `buildCard()`: pick a random synset, resolve its ILI group (all synsets sharing the same `ili`), merge lemmas across the group filtered by active languages, take one as the prompt, take 1–5 others as correct answers, fill the rest of the 6 slots with distractors — preferring semantic siblings (co-hyponyms found via `byHypernym`, resolved through their ILI groups), falling back to same-POS synsets.
+- Each card is built by `buildCard()`: pick a weighted-random synset (lower performance → higher weight; see `src/data/stats.ts`), resolve its ILI group (all synsets sharing the same `ili`), merge lemmas across the group filtered by active languages, take one lemma from the picked synset itself as the prompt (never from other ILI-group members), take 1–5 others as correct answers, fill the rest of the 6 slots with distractors — preferring semantic siblings (co-hyponyms found via `byHypernym`, resolved through their ILI groups), falling back to same-POS synsets.
 - `LangFilter` (`Record<"en" | "it" | "ru", boolean>`) controls which languages appear in the prompt and options. ILI groups with fewer than 2 lemmas in active languages are skipped.
 - The card carries `def` and `examples` from the anchor synset, displayed as hints.
+
+**Statistics** (`src/data/stats.ts`): per-synset performance tracking stored in localStorage under the key `synsetStats`. Each entry records `seen`, `correctFound`, `correctMissed`, `wrongPicked`, `lastSeen`. Performance = `correctFound / (correctFound + correctMissed + 2 * wrongPicked)`; weight = `1 − performance`. Unseen synsets default to weight 1.0 (highest priority). `loadStats` / `saveStats` are synchronous (localStorage); no React state is needed in components that only read stats.
 
 **Component tree:**
 ```
@@ -67,7 +69,7 @@ App  (view: "play" | "explore" | "detail")
 
 `Explore` loads synsets via the same cached `loadSynsets()` call. Filtering (search + POS) runs in a `useMemo` with `useDeferredValue` on the query for responsiveness. The list renders 50 rows at a time, expanding via `IntersectionObserver` on a sentinel element. WordNet POS `"a"` and `"s"` (satellite adjective) are both displayed as "adj" and merged under the Adjective filter.
 
-`SynsetDetail` uses `loadSynsetMap()` and `loadSynsetsByILI()` (exports of `src/data/loader.ts`). It shows the primary synset plus an "In other languages" section for ILI-linked synsets from other lexicons.
+`SynsetDetail` uses `loadSynsetMap()` and `loadSynsetsByILI()` (exports of `src/data/loader.ts`). It shows the primary synset plus an "In other languages" section for ILI-linked synsets from other lexicons. It also shows `N× · X%` performance stats in the meta row for synsets that have been played at least once (read synchronously via `loadStats()`).
 
 `LANGS` (`["en", "it", "ru"]` from `src/data/types.ts`) is the canonical ordered list iterated wherever language order matters (lemma display, filter iteration).
 

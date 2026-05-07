@@ -4,7 +4,7 @@ A multilingual synonym flashcard trainer for English, Italian, and Russian, buil
 
 ## How it works
 
-**Play** — a random word is presented and you select all its synonyms from 6 options. Words and options can come from any combination of languages (configurable in settings). Feedback is colour-coded: correct picks turn green, missed synonyms turn yellow, wrong picks turn red. The prompt also shows the synset definition and examples as a hint.
+**Play** — a random word is presented and you select all its synonyms from 6 options. Words and options can come from any combination of languages (configurable in settings). Feedback is colour-coded: correct picks turn green, missed synonyms turn yellow, wrong picks turn red. The prompt also shows the synset definition and examples as a hint. Words you struggle with are shown more often; words you know well appear less frequently. Clicking the prompt word opens its detail page, where your seen count and accuracy (e.g. `3× · 67%`) are displayed once you've played it at least once.
 
 **Explore** — browse all 215k synsets (English, Italian, Russian) with live search and part-of-speech filters. Clicking a synset shows its ILI-linked equivalents in other languages.
 

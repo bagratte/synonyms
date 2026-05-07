@@ -6,9 +6,9 @@ A multilingual synonym flashcard trainer for English, Italian, and Russian, buil
 
 **Play** — a random word is presented and you select all its synonyms from 6 options. Words and options can come from any combination of languages (configurable in settings). Feedback is colour-coded: correct picks turn green, missed synonyms turn yellow, wrong picks turn red. The prompt also shows the synset definition and examples as a hint.
 
-**Explore** — browse all 117k synsets with live search and part-of-speech filters (Noun, Verb, Adjective, Adverb). Each synset shows its English, Italian, and Russian lemmas side by side with match highlighting.
+**Explore** — browse all 215k synsets (English, Italian, Russian) with live search and part-of-speech filters. Clicking a synset shows its ILI-linked equivalents in other languages.
 
-Data comes from [WordNet](https://wordnet.princeton.edu/) (Princeton), the [Open Multilingual Wordnet](https://omwn.org/), and [RuWordNet](https://ruwordnet.ru/en/), preprocessed into a static JSON file that ships with the app — no backend required.
+Data comes from [Open English WordNet](https://en-word.net/), the [Open Multilingual Wordnet](https://omwn.org/) (Italian), and [RuWordNet](https://ruwordnet.ru/en/) (Russian), preprocessed into a static JSON file that ships with the app — no backend required.
 
 ## Development
 
@@ -29,13 +29,10 @@ The synset data is pre-built and committed at `public/synsets.json`. To rebuild 
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install nltk ruwordnet tqdm
-.venv/bin/python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4')"
-# Unzip the downloaded corpora (required — NLTK doesn't auto-unzip)
-cd ~/nltk_data/corpora && unzip -o wordnet.zip && unzip -o omw-1.4.zip
-cd /path/to/project
-.venv/bin/python -m ruwordnet download
+.venv/bin/pip install wn tqdm
+.venv/bin/python -c "import wn; wn.download('oewn:2025+'); wn.download('omw-it:2.0')"
+# ruwn:0.1 must be installed separately (custom lexicon)
 .venv/bin/python scripts/build_synsets.py
 ```
 
-To add a new language, implement a `LangAdapter` subclass in `build_synsets.py` and add it to the `ADAPTERS` dict.
+To add a new language, add one entry to the `LEXICONS` list in `build_synsets.py` (any wn-compatible lexicon works), then add the language code to `Lang` and `LANGS` in `src/data/types.ts` and a label in `src/components/Settings.tsx`.

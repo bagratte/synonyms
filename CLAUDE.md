@@ -14,7 +14,7 @@ npm run build
 # Lint
 npm run lint
 
-# Rebuild synsets.json (run after changing ADAPTERS in the script)
+# Rebuild synsets.json (run after changing LEXICONS in the script)
 .venv/bin/python scripts/build_synsets.py
 ```
 
@@ -26,33 +26,32 @@ This is a multilingual synonym flashcard trainer (English, Italian, Russian). It
 
 ### 1. Data pipeline (Python, one-time)
 
-`scripts/build_synsets.py` pulls from Open English WordNet (`oewn:2025+`) via the `wn` library for English, OMW (`omw-it:2.0`) for Italian, and RuWordNet for Russian, then writes `public/synsets.json`. The venv lives at `.venv/`. WordNet data is managed by `wn` (`pip install wn`; lexicons downloaded with `wn.download(...)`). RuWordNet is installed via `pip install ruwordnet` and its DB via `python -m ruwordnet download`.
+`scripts/build_synsets.py` iterates all lexicons in `LEXICONS` via the `wn` library and writes `public/synsets.json`. The venv lives at `.venv/`. All lexicons must be wn-compatible; currently `oewn:2025+` (EN), `omw-it:2.0` (IT), `ruwn:0.1` (RU).
 
-The language architecture is pluggable: each language is a `LangAdapter` subclass registered in `ADAPTERS`. To add a language, implement the adapter and add it there — no other changes needed.
+To add a language: add one entry to `LEXICONS` — no other changes to the script needed. The app's `Lang` type and `LANGS` array in `src/data/types.ts` must also be updated, plus a label in `Settings.tsx`.
 
-The JSON schema is a flat array of synsets:
+The JSON schema is a flat array of per-lexicon synsets (~215k entries):
 ```json
 [{
-  "id": "oewn-01151786-a", "pos": "a", "lexname": "adj.all",
-  "def": {"en": "enjoying or showing or marked by joy or pleasure", "ru": "..."},
-  "examples": {"en": ["a happy smile"]},
+  "id": "oewn-01151786-a", "lang": "en", "ili": "i90287",
+  "pos": "a", "lexname": "adj.all",
+  "def": "enjoying or showing or marked by joy or pleasure",
+  "examples": ["a happy smile"],
   "hypernyms": ["oewn-01152267-s"],
-  "en": [{"name": "happy", "count": 37, "antonyms": [{"synset": "oewn-01152997-a", "lemma": "unhappy"}]}],
-  "it": [{"name": "felice"}],
-  "ru": [{"name": "счастливый"}]
+  "lemmas": [{"name": "happy", "count": 37, "antonyms": [{"synset": "oewn-01152997-a", "lemma": "unhappy"}]}]
 }, ...]
 ```
-All language keys (`en`, `it`, `ru`) are optional — a synset appears as a card as long as it has lemmas in at least one active language.
+Each entry belongs to one lexicon (`lang`). Cross-language linking uses the `ili` field at runtime. `lexname`, `hypernyms`, `antonyms`, and `count` are OEWN-only in practice but the schema treats them as optional for all.
 
 ### 2. React app (TypeScript + Vite)
 
-`public/synsets.json` (~33MB) is fetched once on load and cached in module scope (`src/data/loader.ts`). All game logic runs client-side with no backend.
+`public/synsets.json` (~49MB) is fetched once on load and cached in module scope (`src/data/loader.ts`). All game logic runs client-side with no backend.
 
 **Data flow:**
-- `useGame(filter)` (`src/hooks/useGame.ts`) owns all game state. It builds a `byPos` index (Map from POS string → synset[]) and a `byHypernym` index on load.
-- Each card is built by `buildCard()`: pick a random eligible synset, take one lemma as the prompt, take 1–5 other lemmas as correct answers (random count), fill the rest of the 6 slots with distractors — preferring semantic siblings (co-hyponyms via `byHypernym`), falling back to same-POS synsets.
-- `LangFilter` (`Record<"en" | "it" | "ru", boolean>`) controls which languages appear in the prompt and options. Synsets with no coverage in the active language(s) are skipped; those with partial coverage are valid cards.
-- The card also carries `def` and `examples` from the synset, displayed as hints in the flashcard prompt.
+- `useGame(filter)` (`src/hooks/useGame.ts`) owns all game state. It builds `byPos`, `byHypernym`, and `byILI` indices on load.
+- Each card is built by `buildCard()`: pick a random synset, resolve its ILI group (all synsets sharing the same `ili`), merge lemmas across the group filtered by active languages, take one as the prompt, take 1–5 others as correct answers, fill the rest of the 6 slots with distractors — preferring semantic siblings (co-hyponyms found via `byHypernym`, resolved through their ILI groups), falling back to same-POS synsets.
+- `LangFilter` (`Record<"en" | "it" | "ru", boolean>`) controls which languages appear in the prompt and options. ILI groups with fewer than 2 lemmas in active languages are skipped.
+- The card carries `def` and `examples` from the anchor synset, displayed as hints.
 
 **Component tree:**
 ```
@@ -68,7 +67,7 @@ App  (view: "play" | "explore" | "detail")
 
 `Explore` loads synsets via the same cached `loadSynsets()` call. Filtering (search + POS) runs in a `useMemo` with `useDeferredValue` on the query for responsiveness. The list renders 50 rows at a time, expanding via `IntersectionObserver` on a sentinel element. WordNet POS `"a"` and `"s"` (satellite adjective) are both displayed as "adj" and merged under the Adjective filter.
 
-`SynsetDetail` uses `loadSynsetMap()` (second export of `src/data/loader.ts`) which builds an `id → Synset` Map on first call and caches it.
+`SynsetDetail` uses `loadSynsetMap()` and `loadSynsetsByILI()` (exports of `src/data/loader.ts`). It shows the primary synset plus an "In other languages" section for ILI-linked synsets from other lexicons.
 
 `LANGS` (`["en", "it", "ru"]` from `src/data/types.ts`) is the canonical ordered list iterated wherever language order matters (lemma display, filter iteration).
 

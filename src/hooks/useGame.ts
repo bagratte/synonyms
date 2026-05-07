@@ -35,15 +35,14 @@ function buildCard(
     return ss.ili ? (byILI.get(ss.ili) ?? [ss]) : [ss];
   }
 
-  const eligible = synsets.filter((ss) => getLemmas(getGroup(ss), filter).length >= 2);
+  const eligible = synsets.filter((ss) => filter[ss.lang] && getLemmas(getGroup(ss), filter).length >= 2);
   if (eligible.length === 0) return null;
 
   const ss = pickRandom(eligible);
   const group = getGroup(ss);
-  const lemmas = shuffle(getLemmas(group, filter));
 
-  const promptEntry = lemmas[0];
-  const remaining = lemmas.slice(1);
+  const promptEntry = pickRandom(ss.lemmas.map((l) => ({ word: l.name, lang: ss.lang, synsetId: ss.id })));
+  const remaining = shuffle(getLemmas(group, filter).filter((l) => l.word !== promptEntry.word));
 
   const maxCorrect = Math.min(remaining.length, MAX_CORRECT, OPTIONS_COUNT - 1);
   const numCorrect = Math.floor(Math.random() * maxCorrect) + 1;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { loadSynsetMap, loadSynsetsByILI } from "../data/loader";
+import { loadStats, getPerformance } from "../data/stats";
 import type { Lemma, LemmaRef, Synset } from "../data/types";
 
 interface Props {
@@ -121,6 +122,9 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
   const iliGroup = ss.ili ? (byILI.get(ss.ili) ?? [ss]) : [ss];
   const linked = iliGroup.filter((s) => s.id !== ss.id);
 
+  const synsetStats = loadStats()[synsetId];
+  const perf = synsetStats ? getPerformance(synsetStats) : null;
+
   return (
     <div className="detail">
       <button className="detail__back" onClick={onBack}>← {backLabel}</button>
@@ -130,6 +134,9 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
           <span className={`synset__pos synset__pos--${ss.pos}`}>{POS_FULL[ss.pos]}</span>
           <span className="detail__id">{ss.id}</span>
           {ss.lexname && <span className="detail__lexname">{ss.lexname.replace(".", " · ")}</span>}
+          {perf !== null && (
+            <span className="detail__perf">{synsetStats!.seen}× · {Math.round(perf * 100)}%</span>
+          )}
         </div>
 
         <SynsetBlock ss={ss} onNavigate={onNavigate} />

@@ -584,6 +584,12 @@ mark {
   padding: 2px 8px;
 }
 
+.detail__perf {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
 .detail__lemmas {
   display: flex;
   flex-direction: column;

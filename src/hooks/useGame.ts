@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadSynsets, loadSynsetsByILI } from "../data/loader";
+import { loadStats, saveStats, getWeight, recordResult, type StatsMap } from "../data/stats";
 import type { Card, Lang, LangFilter, Option, Synset } from "../data/types";
 
 const OPTIONS_COUNT = 6;
@@ -7,6 +8,17 @@ const MAX_CORRECT = 5;
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function weightedRandom<T>(items: T[], weights: number[]): T {
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  if (total === 0) return items[Math.floor(Math.random() * items.length)];
+  let r = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return items[i];
+  }
+  return items[items.length - 1];
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -29,7 +41,8 @@ function buildCard(
   filter: LangFilter,
   byPos: Map<string, Synset[]>,
   byHypernym: Map<string, Synset[]>,
-  byILI: Map<string, Synset[]>
+  byILI: Map<string, Synset[]>,
+  stats: StatsMap
 ): Card | null {
   function getGroup(ss: Synset): Synset[] {
     return ss.ili ? (byILI.get(ss.ili) ?? [ss]) : [ss];
@@ -38,7 +51,7 @@ function buildCard(
   const eligible = synsets.filter((ss) => filter[ss.lang] && getLemmas(getGroup(ss), filter).length >= 2);
   if (eligible.length === 0) return null;
 
-  const ss = pickRandom(eligible);
+  const ss = weightedRandom(eligible, eligible.map((s) => getWeight(stats[s.id])));
   const group = getGroup(ss);
 
   const promptEntry = pickRandom(ss.lemmas.map((l) => ({ word: l.name, lang: ss.lang, synsetId: ss.id })));
@@ -116,6 +129,7 @@ export function useGame(filter: LangFilter) {
   const [card, setCard] = useState<Card | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitted, setSubmitted] = useState(false);
+  const [stats, setStats] = useState<StatsMap>(() => loadStats());
 
   useEffect(() => {
     Promise.all([loadSynsets(), loadSynsetsByILI()]).then(([data, iliMap]) => {
@@ -140,10 +154,10 @@ export function useGame(filter: LangFilter) {
 
   const nextCard = useCallback(() => {
     if (!synsets) return;
-    setCard(buildCard(synsets, filter, byPos, byHypernym, byILI));
+    setCard(buildCard(synsets, filter, byPos, byHypernym, byILI, stats));
     setSelected(new Set());
     setSubmitted(false);
-  }, [synsets, filter, byPos, byHypernym, byILI]);
+  }, [synsets, filter, byPos, byHypernym, byILI, stats]);
 
   useEffect(() => {
     if (synsets) nextCard();
@@ -159,9 +173,15 @@ export function useGame(filter: LangFilter) {
   }, [submitted]);
 
   const submit = useCallback(() => {
-    if (selected.size === 0 || submitted) return;
+    if (selected.size === 0 || submitted || !card) return;
+    const correctFound = card.options.filter((o) => o.correct && selected.has(o.word)).length;
+    const correctMissed = card.options.filter((o) => o.correct && !selected.has(o.word)).length;
+    const wrongPicked = card.options.filter((o) => !o.correct && selected.has(o.word)).length;
+    const newStats = recordResult(stats, card.synsetId, correctFound, correctMissed, wrongPicked);
+    saveStats(newStats);
+    setStats(newStats);
     setSubmitted(true);
-  }, [selected, submitted]);
+  }, [selected, submitted, card, stats]);
 
   return { card, selected, submitted, toggle, submit, nextCard, loading: !synsets };
 }

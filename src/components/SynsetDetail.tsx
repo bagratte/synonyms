@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { loadSynsetMap } from "../data/loader";
-import type { Lang, Lemma, LemmaRef, Synset } from "../data/types";
-import { LANGS } from "../data/types";
+import { loadSynsetMap, loadSynsetsByILI } from "../data/loader";
+import type { Lemma, LemmaRef, Synset } from "../data/types";
+
 interface Props {
   synsetId: string;
   onNavigate: (id: string) => void;
@@ -11,7 +11,6 @@ interface Props {
 
 const POS_FULL: Record<string, string> = { n: "noun", v: "verb", a: "adj", s: "adj", r: "adv" };
 
-
 function LemmaRefChip({ data, onClick }: { data: LemmaRef; onClick: () => void }) {
   return (
     <button className="lemma-ref" onClick={onClick}>
@@ -20,9 +19,8 @@ function LemmaRefChip({ data, onClick }: { data: LemmaRef; onClick: () => void }
   );
 }
 
-function LemmaBlock({ lemma, lang, onNavigate }: { lemma: Lemma; lang: Lang; onNavigate: (id: string) => void }) {
+function LemmaBlock({ lemma, lang, onNavigate }: { lemma: Lemma; lang: string; onNavigate: (id: string) => void }) {
   if (!lemma.count && !lemma.antonyms?.length) return null;
-
   return (
     <div className="detail__lemma">
       <div className="detail__lemma-header">
@@ -44,19 +42,70 @@ function LemmaBlock({ lemma, lang, onNavigate }: { lemma: Lemma; lang: Lang; onN
   );
 }
 
+function SynsetBlock({ ss, onNavigate }: { ss: Synset; onNavigate: (id: string) => void }) {
+  const hasLemmaDetails = ss.lemmas.some((l) => l.count || l.antonyms?.length);
+  return (
+    <div className="detail__synset-block">
+      <div className="detail__lemmas">
+        <div className="synset__row">
+          <span className={`synset__lang${ss.lang !== "en" ? ` synset__lang--${ss.lang}` : ""}`}>{ss.lang.toUpperCase()}</span>
+          <span className={`synset__words${ss.lang !== "en" ? ` synset__words--${ss.lang}` : ""} detail__words`}>
+            {ss.lemmas.map((l, i) => (
+              <span key={l.name}>
+                {l.name.replace(/_/g, " ")}
+                {l.count ? <sup className="detail__freq">{l.count}</sup> : null}
+                {i < ss.lemmas.length - 1 ? ", " : ""}
+              </span>
+            ))}
+          </span>
+        </div>
+      </div>
+
+      {ss.def && (
+        <div className="detail__defs">
+          <p className="detail__def">
+            <span className={`synset__lang${ss.lang !== "en" ? ` synset__lang--${ss.lang}` : ""}`}>{ss.lang.toUpperCase()}</span>
+            "{ss.def}"
+          </p>
+        </div>
+      )}
+
+      {ss.examples && ss.examples.length > 0 && (
+        <div className="detail__examples">
+          <ul className="detail__example-group">
+            <span className={`synset__lang${ss.lang !== "en" ? ` synset__lang--${ss.lang}` : ""}`}>{ss.lang.toUpperCase()}</span>
+            {ss.examples.map((ex, i) => (
+              <li key={i} className="detail__example">{ex}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {hasLemmaDetails && (
+        <div className="detail__lemma-details">
+          <div className="detail__section-title">Lemma details</div>
+          {ss.lemmas.map((l) => (
+            <LemmaBlock key={l.name} lemma={l} lang={ss.lang} onNavigate={onNavigate} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props) {
   const [ssMap, setSsMap] = useState<Map<string, Synset> | null>(null);
+  const [byILI, setByILI] = useState<Map<string, Synset[]> | null>(null);
 
   useEffect(() => {
-    loadSynsetMap().then(setSsMap);
+    Promise.all([loadSynsetMap(), loadSynsetsByILI()]).then(([map, ili]) => {
+      setSsMap(map);
+      setByILI(ili);
+    });
   }, []);
 
-  if (!ssMap) {
-    return (
-      <div className="detail">
-        <p className="status">Loading…</p>
-      </div>
-    );
+  if (!ssMap || !byILI) {
+    return <div className="detail"><p className="status">Loading…</p></div>;
   }
 
   const ss = ssMap.get(synsetId);
@@ -69,10 +118,8 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
     );
   }
 
-  const allLemmas: { lemma: Lemma; lang: Lang }[] = LANGS.flatMap((lang) =>
-    (ss[lang] ?? []).map((l) => ({ lemma: l, lang }))
-  );
-  const hasLemmaDetails = allLemmas.some(({ lemma: l }) => l.count || l.antonyms?.length);
+  const iliGroup = ss.ili ? (byILI.get(ss.ili) ?? [ss]) : [ss];
+  const linked = iliGroup.filter((s) => s.id !== ss.id);
 
   return (
     <div className="detail">
@@ -82,57 +129,18 @@ export function SynsetDetail({ synsetId, onNavigate, onBack, backLabel }: Props)
         <div className="detail__meta">
           <span className={`synset__pos synset__pos--${ss.pos}`}>{POS_FULL[ss.pos]}</span>
           <span className="detail__id">{ss.id}</span>
-          <span className="detail__lexname">{ss.lexname.replace(".", " · ")}</span>
+          {ss.lexname && <span className="detail__lexname">{ss.lexname.replace(".", " · ")}</span>}
         </div>
 
-        <div className="detail__lemmas">
-          {LANGS.map((lang) => {
-            const lemmas = ss[lang];
-            if (!lemmas || lemmas.length === 0) return null;
-            return (
-              <div key={lang} className="synset__row">
-                <span className={`synset__lang${lang !== "en" ? ` synset__lang--${lang}` : ""}`}>{lang.toUpperCase()}</span>
-                <span className={`synset__words${lang !== "en" ? ` synset__words--${lang}` : ""} detail__words`}>
-                  {lemmas.map((l, i) => (
-                    <span key={l.name}>
-                      {l.name.replace(/_/g, " ")}
-                      {l.count ? <sup className="detail__freq">{l.count}</sup> : null}
-                      {i < lemmas.length - 1 ? ", " : ""}
-                    </span>
-                  ))}
-                </span>
+        <SynsetBlock ss={ss} onNavigate={onNavigate} />
+
+        {linked.length > 0 && (
+          <div className="detail__linked">
+            <div className="detail__section-title">In other languages</div>
+            {linked.map((s) => (
+              <div key={s.id} className="detail__linked-entry" onClick={() => onNavigate(s.id)} role="button" tabIndex={0}>
+                <SynsetBlock ss={s} onNavigate={onNavigate} />
               </div>
-            );
-          })}
-        </div>
-
-        <div className="detail__defs">
-          {(Object.entries(ss.def) as [Lang, string][]).map(([lang, d]) => (
-            <p key={lang} className="detail__def">
-              <span className={`synset__lang${lang !== "en" ? ` synset__lang--${lang}` : ""}`}>{lang.toUpperCase()}</span>
-              "{d}"
-            </p>
-          ))}
-        </div>
-
-        {ss.examples && (
-          <div className="detail__examples">
-            {(Object.entries(ss.examples) as [Lang, string[]][]).map(([lang, exs]) => (
-              <ul key={lang} className="detail__example-group">
-                <span className={`synset__lang${lang !== "en" ? ` synset__lang--${lang}` : ""}`}>{lang.toUpperCase()}</span>
-                {exs.map((ex, i) => (
-                  <li key={i} className="detail__example">{ex}</li>
-                ))}
-              </ul>
-            ))}
-          </div>
-        )}
-
-        {hasLemmaDetails && (
-          <div className="detail__lemma-details">
-            <div className="detail__section-title">Lemma details</div>
-            {allLemmas.map(({ lemma: l, lang }) => (
-              <LemmaBlock key={l.name} lemma={l} lang={lang} onNavigate={onNavigate} />
             ))}
           </div>
         )}

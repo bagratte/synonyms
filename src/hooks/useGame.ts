@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { loadSynsets } from "../data/loader";
+import { loadSynsets, loadSynsetsByILI } from "../data/loader";
 import type { Card, Lang, LangFilter, Option, Synset } from "../data/types";
-import { LANGS } from "../data/types";
 
 const OPTIONS_COUNT = 6;
-const MAX_CORRECT = 5; // at most 5 correct, so there's always ≥1 distractor slot
+const MAX_CORRECT = 5;
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -19,60 +18,76 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function getLemmas(ss: Synset, filter: LangFilter): { word: string; lang: Lang }[] {
-  const result: { word: string; lang: Lang }[] = [];
-  for (const lang of LANGS) {
-    if (!filter[lang]) continue;
-    for (const l of ss[lang] ?? []) result.push({ word: l.name, lang });
-  }
-  return result;
+function getLemmas(group: Synset[], filter: LangFilter): { word: string; lang: Lang }[] {
+  return group.flatMap((ss) =>
+    filter[ss.lang] ? ss.lemmas.map((l) => ({ word: l.name, lang: ss.lang })) : []
+  );
 }
 
 function buildCard(
   synsets: Synset[],
   filter: LangFilter,
   byPos: Map<string, Synset[]>,
-  byHypernym: Map<string, Synset[]>
+  byHypernym: Map<string, Synset[]>,
+  byILI: Map<string, Synset[]>
 ): Card | null {
-  // Eligible synsets: have at least 2 lemmas in the active language(s)
-  const eligible = synsets.filter((ss) => getLemmas(ss, filter).length >= 2);
+  function getGroup(ss: Synset): Synset[] {
+    return ss.ili ? (byILI.get(ss.ili) ?? [ss]) : [ss];
+  }
+
+  const eligible = synsets.filter((ss) => getLemmas(getGroup(ss), filter).length >= 2);
   if (eligible.length === 0) return null;
 
   const ss = pickRandom(eligible);
-  const lemmas = shuffle(getLemmas(ss, filter));
+  const group = getGroup(ss);
+  const lemmas = shuffle(getLemmas(group, filter));
 
-  // Pick prompt word
   const promptEntry = lemmas[0];
   const remaining = lemmas.slice(1);
 
-  // Correct answers: remaining lemmas from same synset, capped randomly
   const maxCorrect = Math.min(remaining.length, MAX_CORRECT, OPTIONS_COUNT - 1);
   const numCorrect = Math.floor(Math.random() * maxCorrect) + 1;
   const correctWords = remaining.slice(0, numCorrect);
 
-  // Distractors: prefer semantic siblings (co-hyponyms), fall back to same-POS
   const numDistractors = OPTIONS_COUNT - correctWords.length;
   const usedWords = new Set([promptEntry.word, ...correctWords.map((l) => l.word)]);
-  const distractors: Option[] = [];
+  const groupIds = new Set(group.map((s) => s.id));
 
-  // Build sibling pool: synsets sharing a hypernym with ss, same POS
+  // Collect hypernyms from all synsets in the group (mainly OEWN will have them)
+  const allHypernyms = new Set<string>();
+  for (const s of group) {
+    for (const hId of s.hypernyms ?? []) allHypernyms.add(hId);
+  }
+
+  // Sibling pool: co-hyponyms sharing a hypernym, same POS, not in current group
   const siblingSet = new Set<Synset>();
-  for (const hId of ss.hypernyms ?? []) {
+  for (const hId of allHypernyms) {
     for (const sibling of byHypernym.get(hId) ?? []) {
-      if (sibling.id !== ss.id && sibling.pos === ss.pos) siblingSet.add(sibling);
+      if (sibling.pos === ss.pos && !groupIds.has(sibling.id)) siblingSet.add(sibling);
     }
   }
-  const siblings = shuffle([...siblingSet]);
-  const siblingIds = new Set(siblings.map((s) => s.id));
-  const fallback = shuffle((byPos.get(ss.pos) ?? []).filter((s) => !siblingIds.has(s.id)));
-  const candidatePool = [...siblings, ...fallback];
 
-  for (const candidate of candidatePool) {
+  // Deduplicate sibling groups by ILI: one entry per ILI group
+  const seenILI = new Set<string>();
+  const siblingGroups: Synset[][] = [];
+  for (const sibling of shuffle([...siblingSet])) {
+    const key = sibling.ili ?? sibling.id;
+    if (!seenILI.has(key)) {
+      seenILI.add(key);
+      siblingGroups.push(getGroup(sibling));
+    }
+  }
+
+  // Fallback: same POS, not already in sibling groups or current group
+  const siblingIds = new Set(siblingGroups.flat().map((s) => s.id));
+  const fallbackGroups = shuffle(
+    (byPos.get(ss.pos) ?? []).filter((s) => !groupIds.has(s.id) && !siblingIds.has(s.id))
+  ).map(getGroup);
+
+  const distractors: Option[] = [];
+  for (const candidateGroup of [...siblingGroups, ...fallbackGroups]) {
     if (distractors.length >= numDistractors) break;
-    if (candidate.id === ss.id) continue;
-    const candidateLemmas = getLemmas(candidate, filter).filter(
-      (l) => !usedWords.has(l.word)
-    );
+    const candidateLemmas = getLemmas(candidateGroup, filter).filter((l) => !usedWords.has(l.word));
     if (candidateLemmas.length === 0) continue;
     const chosen = pickRandom(candidateLemmas);
     usedWords.add(chosen.word);
@@ -84,14 +99,13 @@ function buildCard(
     ...distractors,
   ]);
 
-  const lang = promptEntry.lang;
   return {
     prompt: promptEntry.word,
-    promptLang: lang,
+    promptLang: promptEntry.lang,
     synsetId: ss.id,
     options,
-    def: ss.def[lang],
-    examples: ss.examples?.[lang],
+    def: ss.def,
+    examples: ss.examples,
   };
 }
 
@@ -99,12 +113,13 @@ export function useGame(filter: LangFilter) {
   const [synsets, setSynsets] = useState<Synset[] | null>(null);
   const [byPos, setByPos] = useState<Map<string, Synset[]>>(new Map());
   const [byHypernym, setByHypernym] = useState<Map<string, Synset[]>>(new Map());
+  const [byILI, setByILI] = useState<Map<string, Synset[]>>(new Map());
   const [card, setCard] = useState<Card | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    loadSynsets().then((data) => {
+    Promise.all([loadSynsets(), loadSynsetsByILI()]).then(([data, iliMap]) => {
       const posMap = new Map<string, Synset[]>();
       const hypMap = new Map<string, Synset[]>();
       for (const ss of data) {
@@ -120,15 +135,16 @@ export function useGame(filter: LangFilter) {
       setSynsets(data);
       setByPos(posMap);
       setByHypernym(hypMap);
+      setByILI(iliMap);
     });
   }, []);
 
   const nextCard = useCallback(() => {
     if (!synsets) return;
-    setCard(buildCard(synsets, filter, byPos, byHypernym));
+    setCard(buildCard(synsets, filter, byPos, byHypernym, byILI));
     setSelected(new Set());
     setSubmitted(false);
-  }, [synsets, filter, byPos, byHypernym]);
+  }, [synsets, filter, byPos, byHypernym, byILI]);
 
   useEffect(() => {
     if (synsets) nextCard();

@@ -731,3 +731,28 @@ mark {
   color: var(--text-muted);
   font-style: italic;
 }
+
+.detail__synset-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail__linked {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.detail__linked-entry {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.detail__linked-entry:hover {
+  border-color: var(--accent);
+}

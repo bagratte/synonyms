@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo } from "react";
 import { loadSynsets } from "../data/loader";
 import type { Synset } from "../data/types";
-import { LANGS } from "../data/types";
 
 const PAGE_SIZE = 50;
 
@@ -42,15 +41,14 @@ export function Explore({ onNavigate }: Props) {
       : null;
     const test = (text: string) => regex ? regex.test(text) : text.toLowerCase().includes(q);
     const matchLemmaName = (name: string) => test(name.replace(/_/g, " "));
-    const matchSynsetId = (id: string) => test(id);
     return synsets.filter((ss) => {
       if (posFilter !== "all") {
         const posMatch = posFilter === "a" ? ss.pos === "a" || ss.pos === "s" : ss.pos === posFilter;
         if (!posMatch) return false;
       }
       if (q && (matchLemmas || matchSynsets)) {
-        return (matchLemmas && LANGS.some((lang) => ss[lang]?.some((l) => matchLemmaName(l.name))))
-            || (matchSynsets && matchSynsetId(ss.id));
+        return (matchLemmas && ss.lemmas.some((l) => matchLemmaName(l.name)))
+            || (matchSynsets && test(ss.id));
       }
       return true;
     });
@@ -111,7 +109,6 @@ export function Explore({ onNavigate }: Props) {
         </div>
       </div>
 
-
       <div className="explore__list">
         {synsets === null && <p className="status">Loading…</p>}
         {synsets !== null && filtered.length === 0 && <p className="status">No results.</p>}
@@ -153,20 +150,17 @@ const SynsetRow = memo(function SynsetRow({ ss, query, wholeWord, onClick }: { s
     <div className="synset synset--clickable" onClick={onClick}>
       <span className={`synset__pos synset__pos--${ss.pos}`}>{POS_SHORT[ss.pos]}</span>
       <div className="synset__body">
-        {LANGS.map((lang) => {
-          const lemmas = ss[lang];
-          if (!lemmas || lemmas.length === 0) return null;
-          return (
-            <div key={lang} className="synset__row">
-              <span className={`synset__lang${lang !== "en" ? ` synset__lang--${lang}` : ""}`}>{lang.toUpperCase()}</span>
-              <span className={`synset__words${lang !== "en" ? ` synset__words--${lang}` : ""}`}>
-                {lemmas.map((l: { name: string }, i: number) => (
-                  <span key={l.name}>{highlight(l.name, query, wholeWord)}{i < lemmas.length - 1 ? ", " : ""}</span>
-                ))}
+        <div className="synset__row">
+          <span className={`synset__lang${ss.lang !== "en" ? ` synset__lang--${ss.lang}` : ""}`}>{ss.lang.toUpperCase()}</span>
+          <span className={`synset__words${ss.lang !== "en" ? ` synset__words--${ss.lang}` : ""}`}>
+            {ss.lemmas.map((l, i) => (
+              <span key={l.name}>
+                {highlight(l.name, query, wholeWord)}
+                {i < ss.lemmas.length - 1 ? ", " : ""}
               </span>
-            </div>
-          );
-        })}
+            ))}
+          </span>
+        </div>
       </div>
     </div>
   );

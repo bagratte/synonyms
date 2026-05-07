@@ -15,14 +15,14 @@ export interface Lemma {
 
 export interface Synset {
   id: string;
+  lang: Lang;
+  ili?: string;
   pos: Pos;
-  lexname: string;
-  def: Partial<Record<Lang, string>>;
-  examples?: Partial<Record<Lang, string[]>>;
-  en?: Lemma[];
-  it?: Lemma[];
-  ru?: Lemma[];
+  lexname?: string;
+  def?: string;
+  examples?: string[];
   hypernyms?: string[];
+  lemmas: Lemma[];
 }
 
 export interface Card {

@@ -161,6 +161,7 @@ body { margin: 0; }
   font-weight: 700;
   letter-spacing: -1px;
   margin: 0;
+  overflow-wrap: break-word;
 }
 
 .card__lang {

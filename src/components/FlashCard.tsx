@@ -20,7 +20,7 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
     <div className="card">
       <p className="card__hint">Select all synonyms</p>
       <h1 className="card__prompt">
-        <button className="card__prompt-word" onClick={() => onViewSynset(card.synsetId)}>
+        <button className="card__prompt-word" onClick={() => submitted && onViewSynset(card.synsetId)} disabled={!submitted}>
           {card.prompt.replace(/_/g, " ")}
         </button>
         <span className={`card__lang${card.promptLang !== "en" ? ` card__lang--${card.promptLang}` : ""}`}>{card.promptLang}</span>

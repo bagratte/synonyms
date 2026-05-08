@@ -29,9 +29,10 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
         </button>
       </h1>
 
-      {card.def && (
+      {(card.lexname || card.def) && (
         <div className="card__def">
-          <p className="card__def-text">"{card.def}"</p>
+          {card.lexname && <p className="card__lexname">{card.lexname}</p>}
+          {card.def && <p className="card__def-text">"{card.def}"</p>}
           {card.examples && card.examples.length > 0 && (
             <ul className="card__examples">
               {card.examples.map((ex, i) => <li key={i}>{ex}</li>)}

@@ -116,6 +116,7 @@ function buildCard(
     promptLang: promptEntry.lang,
     synsetId: ss.id,
     options,
+    lexname: ss.lexname,
     def: ss.def,
     examples: ss.examples,
   };

@@ -30,6 +30,7 @@ export interface Card {
   promptLang: Lang;
   synsetId: string;
   options: Option[];
+  lexname?: string;
   def?: string;
   examples?: string[];
 }

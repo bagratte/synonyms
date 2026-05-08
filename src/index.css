@@ -166,6 +166,7 @@ body { margin: 0; }
   margin-left: 4px;
   color: var(--accent);
   opacity: 0.6;
+  white-space: nowrap;
 }
 .card__lang--it { color: #e64980; }
 .card__lang--ru { color: #2f9e44; }

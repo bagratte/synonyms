@@ -76,6 +76,11 @@ body { margin: 0; }
   font-size: 18px;
   letter-spacing: -0.3px;
 }
+.header__logo-short { display: none; }
+@media (max-width: 420px) {
+  .header__logo-full { display: none; }
+  .header__logo-short { display: inline; }
+}
 .header__nav {
   display: flex;
   gap: 2px;

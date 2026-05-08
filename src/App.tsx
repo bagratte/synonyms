@@ -56,7 +56,10 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <span className="header__logo">Synonyms</span>
+        <span className="header__logo">
+          <span className="header__logo-full">Synonyms</span>
+          <span className="header__logo-short">Syn</span>
+        </span>
         <nav className="header__nav">
           <button
             className={`header__nav-btn${view === "play" ? " header__nav-btn--active" : ""}`}

@@ -18,8 +18,7 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
 
   return (
     <div className="card">
-      <p className="card__hint">Select all synonyms</p>
-      <h1 className="card__prompt">
+<h1 className="card__prompt">
         <button className="card__prompt-word" onClick={() => submitted && onViewSynset(card.synsetId)} disabled={!submitted}>
           {(() => {
             const words = card.prompt.replace(/_/g, " ").split(" ");

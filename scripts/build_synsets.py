@@ -32,7 +32,7 @@ warnings.filterwarnings("ignore", category=wn.WnWarning)
 LEXICONS: list[tuple[str, wn.Wordnet, str]] = [
     ("oewn",   wn.Wordnet(lexicon="oewn:2025+"), "en"),
     ("omw-it", wn.Wordnet(lexicon="omw-it:2.0"), "it"),
-    ("ruwn",   wn.Wordnet(lexicon="ruwn:0.1"),   "ru"),
+    ("ruwn",   wn.Wordnet(lexicon="ruwn:0.2"),   "ru"),
 ]
 
 

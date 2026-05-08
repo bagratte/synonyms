@@ -21,9 +21,13 @@ export function FlashCard({ card, selected, submitted, onToggle, onSubmit, onNex
       <p className="card__hint">Select all synonyms</p>
       <h1 className="card__prompt">
         <button className="card__prompt-word" onClick={() => submitted && onViewSynset(card.synsetId)} disabled={!submitted}>
-          {card.prompt.replace(/_/g, " ")}
+          {(() => {
+            const words = card.prompt.replace(/_/g, " ").split(" ");
+            const lang = <span className={`card__lang${card.promptLang !== "en" ? ` card__lang--${card.promptLang}` : ""}`}>{card.promptLang}</span>;
+            const last = <span style={{ whiteSpace: "nowrap" }}>{words[words.length - 1]}{lang}</span>;
+            return words.length === 1 ? last : <>{words.slice(0, -1).join(" ")} {last}</>;
+          })()}
         </button>
-        <span className={`card__lang${card.promptLang !== "en" ? ` card__lang--${card.promptLang}` : ""}`}>{card.promptLang}</span>
       </h1>
 
       {card.def && (

@@ -505,6 +505,7 @@ mark {
 
 /* Clickable prompt word */
 .card__prompt-word {
+  display: inline;
   background: none;
   border: none;
   font: inherit;
